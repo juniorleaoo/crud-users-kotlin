@@ -37,18 +37,12 @@ class UserController(
 
     @PostMapping
     fun createUser(@RequestBody createUserRequest: CreateUserRequest): ResponseEntity<CreateUserResponse> {
-        val user = User(
-            UUID.randomUUID(),
-            nick = createUserRequest.nick,
-            name = createUserRequest.name,
-            birthDate = createUserRequest.birthDate,
-            stack = createUserRequest.stack
-        )
+        val user = createUserRequest.toUser()
         val userCreated = userRepository.save(user)
 
         val httpHeaders = HttpHeaders()
         httpHeaders.location = URI.create("/users/${userCreated.id}")
-        return ResponseEntity(CreateUserResponse(userCreated), httpHeaders, HttpStatus.CREATED)
+        return ResponseEntity(userCreated.toDTO(), httpHeaders, HttpStatus.CREATED)
     }
 
 }
