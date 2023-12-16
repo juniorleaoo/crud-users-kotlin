@@ -9,9 +9,13 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.boot.test.web.client.getForEntity
 import org.springframework.boot.test.web.server.LocalServerPort
+import org.springframework.core.ParameterizedTypeReference
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.http.RequestEntity
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.jdbc.JdbcTestUtils
+import java.net.URI
 import java.time.LocalDate
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -55,10 +59,12 @@ class UserControllerTest : AbstractIntegrationTest() {
 
         testRestTemplate.postForObject(baseUrl, userRequest, CreateUserRequest::class.java)
 
-        val response = testRestTemplate.getForEntity<MutableList<User>>(baseUrl, ArrayList<User>().javaClass)
+        val response = testRestTemplate.exchange(RequestEntity<List<User>>(HttpMethod.GET, URI(baseUrl)), object: ParameterizedTypeReference<List<User>>(){})
         assertNotNull(response)
         assertEquals(response.statusCode, HttpStatus.OK)
-        val users = response.body as ArrayList<User>
+        val users: List<User>? = response.body
+        assertNotNull(users)
+        users as List<User>
         assertEquals(users.size, 1)
         assertEquals(users[0].nick, userRequest.nick)
         assertEquals(users[0].name, userRequest.name)
@@ -83,7 +89,7 @@ class UserControllerTest : AbstractIntegrationTest() {
         val user = response.body as CreateUserResponse
         assertNotNull(user)
         assertNotNull(user.id)
-        assertEquals(response.headers.location, "$baseUrl/${user.id}")
+        assertEquals(response.headers.location.toString(), "/users/${user.id}")
         assertEquals(user.nick, userRequest.nick)
         assertEquals(user.name, userRequest.name)
         assertEquals(user.birthDate, userRequest.birthDate)
