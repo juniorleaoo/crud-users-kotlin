@@ -1,17 +1,14 @@
 package com.crud.users
 
+import jakarta.validation.constraints.Size
 import java.time.LocalDate
 
 data class CreateUserRequest(
     val birthDate: LocalDate,
+    @field:Size(min = 1, max = 32, message = "O campo apelido é obrigatório e deve estar entre 1 e 32")
     val nick: String,
+    @field:Size(min = 1, max = 100, message = "O campo nome é obrigatório e deve estar entre 1 e 100")
     val name: String,
     val stack: List<String>?,
 ) {
-    init {
-        require(name.length in 0..100)
-        stack?.forEach {
-            require(it.length in 0..32)
-        }
-    }
 }

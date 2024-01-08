@@ -97,6 +97,38 @@ class UserControllerTest : AbstractIntegrationTest() {
     }
 
     @Test
+    fun `Not create user when name is empty`(){
+        val userRequest = CreateUserRequest(
+            name = "",
+            nick = "nick",
+            birthDate = LocalDate.now(),
+            stack = listOf("NodeJS")
+        )
+
+        val response =
+            testRestTemplate.postForEntity(baseUrl, userRequest, ErrorsResponse::class.java)
+
+        assertNotNull(response)
+        assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
+    }
+
+    @Test
+    fun `Not create user when name has more 100 characters`(){
+        val userRequest = CreateUserRequest(
+            name = "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc",
+            nick = "nick",
+            birthDate = LocalDate.now(),
+            stack = listOf("NodeJS")
+        )
+
+        val response =
+            testRestTemplate.postForEntity(baseUrl, userRequest, CreateUserResponse::class.java)
+
+        assertNotNull(response)
+        assertEquals(response.statusCode, HttpStatus.CREATED)
+    }
+
+    @Test
     fun `Delete user by id`(){
         val userRequest = CreateUserRequest(
             name = "Name",

@@ -1,5 +1,6 @@
 package com.crud.users
 
+import jakarta.validation.Valid
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -36,7 +37,7 @@ class UserController(
     }
 
     @PostMapping
-    fun createUser(@RequestBody createUserRequest: CreateUserRequest): ResponseEntity<CreateUserResponse> {
+    fun createUser(@Valid @RequestBody createUserRequest: CreateUserRequest): ResponseEntity<CreateUserResponse> {
         val user = createUserRequest.toUser()
         val userCreated = userRepository.save(user)
 
