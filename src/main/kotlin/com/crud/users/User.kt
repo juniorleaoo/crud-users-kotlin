@@ -14,8 +14,8 @@ class User(
     @Column(name = "nick", length = 32, unique = true, nullable = false)
     val nick: String,
 
-    @Column(name = "name", length = 100, nullable = false)
-    val name: String,
+    @Column(name = "name", length = 255, nullable = false)
+    var name: String,
 
     @Column(name = "birth_date", nullable = false)
     val birthDate: LocalDate,
