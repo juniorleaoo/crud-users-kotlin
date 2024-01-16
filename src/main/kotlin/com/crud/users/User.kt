@@ -7,20 +7,20 @@ import java.util.*
 @Entity
 @Table(name = "users")
 class User(
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    val id: UUID,
-
     @Column(name = "nick", length = 32, unique = true, nullable = false)
-    val nick: String,
+    var nick: String,
 
     @Column(name = "name", length = 255, nullable = false)
     var name: String,
 
     @Column(name = "birth_date", nullable = false)
-    val birthDate: LocalDate,
+    var birthDate: LocalDate,
 
     @Convert(converter = StringListConverter::class)
     @Column(name = "stack", columnDefinition = "text", nullable = false)
-    val stack: List<String>?,
-)
+    var stack: List<String>?,
+) {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    lateinit var id: UUID
+}

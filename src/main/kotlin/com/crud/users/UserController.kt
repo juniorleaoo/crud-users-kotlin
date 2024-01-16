@@ -37,13 +37,31 @@ class UserController(
     }
 
     @PostMapping
-    fun createUser(@Valid @RequestBody createUserRequest: CreateUserRequest): ResponseEntity<CreateUserResponse> {
+    fun createUser(@Valid @RequestBody createUserRequest: CreateUserRequest): ResponseEntity<UserResponse> {
         val user = createUserRequest.toUser()
         val userCreated = userRepository.save(user)
 
         val httpHeaders = HttpHeaders()
         httpHeaders.location = URI.create("/users/${userCreated.id}")
-        return ResponseEntity(userCreated.toDTO(), httpHeaders, HttpStatus.CREATED)
+        return ResponseEntity(userCreated.toCreateUserResponse(), httpHeaders, HttpStatus.CREATED)
+    }
+
+    @PutMapping("/{id}")
+    fun updateUser(
+        @PathVariable("id") id: UUID,
+        @Valid @RequestBody updateUserRequest: UpdateUserRequest
+    ): ResponseEntity<UserResponse> {
+        val userUpdated = userRepository.findById(id)
+            .orElseThrow { ResourceNotFoundException("User not found") }
+            .apply {
+                updateUserRequest.nick?.also { nick = it }
+                updateUserRequest.name?.also { name = it }
+                updateUserRequest.birthDate?.also { birthDate = it }
+                updateUserRequest.stack?.also { stack = it }
+            }
+            .run { userRepository.save(this) }
+
+        return ResponseEntity.ok(userUpdated.toCreateUserResponse())
     }
 
 }

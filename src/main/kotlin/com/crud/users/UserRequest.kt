@@ -12,3 +12,19 @@ data class CreateUserRequest(
     val stack: List<String>?,
 ) {
 }
+
+fun CreateUserRequest.toUser(): User {
+    return User(
+        nick = nick,
+        name = name,
+        birthDate = birthDate,
+        stack = stack
+    )
+}
+
+data class UpdateUserRequest(
+    var birthDate: LocalDate?,
+    var nick: String?,
+    var name: String?,
+    var stack: List<String>?,
+) {}

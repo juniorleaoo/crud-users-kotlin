@@ -82,11 +82,11 @@ class UserControllerTest : AbstractIntegrationTest() {
         )
 
         val response =
-            testRestTemplate.postForEntity(baseUrl, userRequest, CreateUserResponse::class.java)
+            testRestTemplate.postForEntity(baseUrl, userRequest, UserResponse::class.java)
 
         assertNotNull(response)
         assertEquals(response.statusCode, HttpStatus.CREATED)
-        val user = response.body as CreateUserResponse
+        val user = response.body as UserResponse
         assertNotNull(user)
         assertNotNull(user.id)
         assertEquals(response.headers.location.toString(), "/users/${user.id}")
@@ -113,7 +113,7 @@ class UserControllerTest : AbstractIntegrationTest() {
     }
 
     @Test
-    fun `Not create user when name has more 100 characters`(){
+    fun `Not create user when name has more 255 characters`(){
         val userRequest = CreateUserRequest(
             name = "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc",
             nick = "nick",
@@ -122,7 +122,7 @@ class UserControllerTest : AbstractIntegrationTest() {
         )
 
         val response =
-            testRestTemplate.postForEntity(baseUrl, userRequest, CreateUserResponse::class.java)
+            testRestTemplate.postForEntity(baseUrl, userRequest, UserResponse::class.java)
 
         assertNotNull(response)
         assertEquals(response.statusCode, HttpStatus.CREATED)
@@ -137,8 +137,8 @@ class UserControllerTest : AbstractIntegrationTest() {
             stack = listOf("NodeJS")
         )
 
-        val userCreatedResponse = testRestTemplate.postForEntity(baseUrl, userRequest, CreateUserResponse::class.java)
-        val userCreated = userCreatedResponse.body as CreateUserResponse
+        val userCreatedResponse = testRestTemplate.postForEntity(baseUrl, userRequest, UserResponse::class.java)
+        val userCreated = userCreatedResponse.body as UserResponse
 
         val userDeletedResponse = testRestTemplate.delete("$baseUrl/$userCreated.id")
         assertNotNull(userDeletedResponse)
