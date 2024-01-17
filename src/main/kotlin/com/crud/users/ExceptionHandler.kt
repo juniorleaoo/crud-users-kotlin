@@ -18,6 +18,14 @@ class ErrorsResponse(
 @ControllerAdvice
 class ExceptionHandler {
 
+    @ExceptionHandler(ResourceNotFoundException::class)
+    fun resourceNotFoundException(
+        req: HttpServletRequest,
+        exception: ResourceNotFoundException
+    ): ResponseEntity<Nothing> {
+        return ResponseEntity.notFound().build()
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun methodArguentNotValidException(
         req: HttpServletRequest,

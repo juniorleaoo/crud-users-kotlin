@@ -57,7 +57,7 @@ class UserController(
                 updateUserRequest.nick?.also { nick = it }
                 updateUserRequest.name?.also { name = it }
                 updateUserRequest.birthDate?.also { birthDate = it }
-                updateUserRequest.stack?.also { stack = it }
+                updateUserRequest.stack.also { stack = it }
             }
             .run { userRepository.save(this) }
 
