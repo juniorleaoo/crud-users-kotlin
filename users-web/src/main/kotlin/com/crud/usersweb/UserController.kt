@@ -15,16 +15,16 @@ class UserController(
 ) {
 
     @GetMapping("/{id}")
-    fun getUser(@PathVariable("id") id: UUID): ResponseEntity<User> {
+    fun getUser(@PathVariable("id") id: UUID): ResponseEntity<UserResponse> {
         val user = userRepository.findById(id)
             .orElseThrow { ResourceNotFoundException("User not found") }
-        return ResponseEntity.ok(user)
+        return ResponseEntity.ok(user.toUserResponse())
     }
 
     @GetMapping
-    fun listUsers(): ResponseEntity<MutableIterable<User>> {
+    fun listUsers(): ResponseEntity<List<UserResponse>> {
         val users = userRepository.findAll()
-        return ResponseEntity.ok(users)
+        return ResponseEntity.ok(users.map { it.toUserResponse() })
     }
 
     @DeleteMapping("/{id}")
@@ -43,7 +43,7 @@ class UserController(
 
         val httpHeaders = HttpHeaders()
         httpHeaders.location = URI.create("/users/${userCreated.id}")
-        return ResponseEntity(userCreated.toCreateUserResponse(), httpHeaders, HttpStatus.CREATED)
+        return ResponseEntity(userCreated.toUserResponse(), httpHeaders, HttpStatus.CREATED)
     }
 
     @PutMapping("/{id}")
@@ -54,14 +54,14 @@ class UserController(
         val userUpdated = userRepository.findById(id)
             .orElseThrow { ResourceNotFoundException("User not found") }
             .apply {
-                updateUserRequest.nick?.also { nick = it }
+                updateUserRequest.nick.also { nick = it }
                 updateUserRequest.name?.also { name = it }
                 updateUserRequest.birthDate?.also { birthDate = it }
                 updateUserRequest.stack.also { stack = it }
             }
             .run { userRepository.save(this) }
 
-        return ResponseEntity.ok(userUpdated.toCreateUserResponse())
+        return ResponseEntity.ok(userUpdated.toUserResponse())
     }
 
 }

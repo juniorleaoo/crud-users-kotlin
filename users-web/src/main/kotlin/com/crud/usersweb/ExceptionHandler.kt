@@ -6,13 +6,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 
-class ErrorResponse(
-    val error: String,
-    val error_description: String
-)
-
-class ErrorsResponse(
-    val errors: List<ErrorResponse>
+data class ErrorsResponse(
+    var errors: List<String>
 )
 
 @ControllerAdvice
@@ -31,14 +26,9 @@ class ExceptionHandler {
         req: HttpServletRequest,
         exception: MethodArgumentNotValidException
     ): ResponseEntity<ErrorsResponse> {
-        val errors = exception.bindingResult.allErrors.map {
-            ErrorResponse(
-                error = it.defaultMessage ?: "",
-                error_description = ""
-            )
-        }
-
-        return ResponseEntity.badRequest().body(ErrorsResponse(errors))
+        val response = ErrorsResponse(mutableListOf())
+        response.errors = exception.bindingResult.allErrors.map { it.defaultMessage ?: "" }
+        return ResponseEntity.badRequest().body(response)
     }
 
 }

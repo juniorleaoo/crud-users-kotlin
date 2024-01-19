@@ -1,6 +1,6 @@
 package com.crud.usersweb
 
-fun User.toCreateUserResponse(): UserResponse {
+fun User.toUserResponse(): UserResponse {
     return UserResponse(
         id = id,
         birthDate = birthDate,

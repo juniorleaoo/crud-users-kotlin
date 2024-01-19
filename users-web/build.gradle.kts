@@ -10,6 +10,7 @@ plugins {
 
 group = "com.crud"
 version = "0.0.1-SNAPSHOT"
+val junitVersion = "5.8.1"
 
 java {
 	sourceCompatibility = JavaVersion.VERSION_21
@@ -26,7 +27,8 @@ dependencies {
 	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
-	testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
+	testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+	testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
 	runtimeOnly("org.postgresql:postgresql")
 	implementation("org.flywaydb:flyway-core")
 
