@@ -1,8 +1,9 @@
-CREATE TABLE users
+create table users
 (
-    id         UUID primary key,
-    nick       varchar(32) unique not null,
-    birth_date date               not null,
-    name       varchar(100)       not null,
-    stack      text null
+    id         raw(16) not null,
+    birth_date timestamp(6) not null,
+    nick       varchar2(32 char),
+    name       varchar2(255 char) not null unique,
+    stack      clob,
+    primary key (id)
 )

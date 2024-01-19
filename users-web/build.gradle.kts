@@ -30,7 +30,9 @@ dependencies {
 	testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
 	testImplementation("org.junit.jupiter:junit-jupiter-params:$junitVersion")
 	runtimeOnly("org.postgresql:postgresql")
-	implementation("org.flywaydb:flyway-core")
+	runtimeOnly("com.oracle.database.jdbc:ojdbc11")
+	implementation("org.flywaydb:flyway-core:10.6.0")
+	implementation("org.flywaydb:flyway-database-oracle:10.6.0")
 
 	testImplementation("org.testcontainers:testcontainers:1.19.3")
 	testImplementation("org.testcontainers:postgresql:1.19.3")

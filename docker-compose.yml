@@ -1,17 +1,38 @@
 version: '3.5'
 
 services:
-  db:
-    image: postgres:latest
-    hostname: db
+  oracle:
+    image: container-registry.oracle.com/database/express:21.3.0-xe
+    hostname: oracle
     environment:
-      - POSTGRES_DB=app
-      - POSTGRES_USER=admin
-      - POSTGRES_PASSWORD=123456
+      - ORACLE_PWD=123456
+    volumes:
+      - oracle_data:/opt/oracle/oradata
     ports:
-      - "5432:5432"
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: '1GB'
+      - "1521:1521"
+#  oracle-free:
+#    image: container-registry.oracle.com/database/free:latest
+#    hostname: oracle
+#    environment:
+#      - ORACLE_PWD=123456
+#    volumes:
+#      - oracle_data:/opt/oracle/oradata
+#    ports:
+#      - "1521:1521"
+#  db:
+#    image: postgres:latest
+#    hostname: db
+#    environment:
+#      - POSTGRES_DB=app
+#      - POSTGRES_USER=admin
+#      - POSTGRES_PASSWORD=123456
+#    ports:
+#      - "5432:5432"
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '0.5'
+#          memory: '1GB'
+
+volumes:
+  oracle_data: {}

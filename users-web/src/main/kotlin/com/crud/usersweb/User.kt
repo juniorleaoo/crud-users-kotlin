@@ -17,7 +17,8 @@ class User(
     var birthDate: LocalDateTime,
 
     @Convert(converter = StringListConverter::class)
-    @Column(name = "stack", columnDefinition = "text")
+    @Lob
+    @Column(name = "stack")
     var stack: List<String>?,
 ) {
     @Id

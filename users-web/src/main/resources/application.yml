@@ -6,10 +6,16 @@ spring:
   jackson:
     property-naming-strategy: SNAKE_CASE
   datasource:
-    driverClassName: org.postgresql.Driver
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/app}
-    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    driverClassName: oracle.jdbc.OracleDriver
+#    url: ${SPRING_DATASOURCE_URL:jdbc:oracle:thin:@localhost:1521:free}
+    url: ${SPRING_DATASOURCE_URL:jdbc:oracle:thin:@localhost:1521:xe}
+    username: ${SPRING_DATASOURCE_USERNAME:system}
     password: ${SPRING_DATASOURCE_PASSWORD:123456}
   jpa:
     hibernate:
       ddl-auto: validate
+    show-sql: true
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+    enabled: true
