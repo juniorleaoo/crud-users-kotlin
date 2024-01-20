@@ -10,6 +10,11 @@ services:
       - oracle_data:/opt/oracle/oradata
     ports:
       - "1521:1521"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '2GB'
 #  oracle-free:
 #    image: container-registry.oracle.com/database/free:latest
 #    hostname: oracle
@@ -19,6 +24,7 @@ services:
 #      - oracle_data:/opt/oracle/oradata
 #    ports:
 #      - "1521:1521"
+
 #  db:
 #    image: postgres:latest
 #    hostname: db

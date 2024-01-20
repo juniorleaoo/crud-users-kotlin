@@ -3,11 +3,5 @@ server:
     context-path: /v1
 
 spring:
-  datasource:
-    driverClassName: org.postgresql.Driver
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/app}
-    username: ${SPRING_DATASOURCE_USERNAME:admin}
-    password: ${SPRING_DATASOURCE_PASSWORD:123456}
-  jpa:
-    hibernate:
-      ddl-auto: none
+  profiles:
+    active: oracle

@@ -36,7 +36,7 @@ dependencies {
 
 	testImplementation("org.testcontainers:testcontainers:1.19.3")
 	testImplementation("org.testcontainers:postgresql:1.19.3")
-
+	testImplementation("org.testcontainers:oracle-xe:1.19.3")
 }
 
 tasks.withType<KotlinCompile> {

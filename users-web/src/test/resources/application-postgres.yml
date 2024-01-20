@@ -1,8 +1,4 @@
 spring:
-  flyway:
-    locations: classpath:db/migration-postgres
-  jackson:
-    property-naming-strategy: SNAKE_CASE
   datasource:
     driverClassName: org.postgresql.Driver
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/app}
@@ -10,4 +6,4 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:123456}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none

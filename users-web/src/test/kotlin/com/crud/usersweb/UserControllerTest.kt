@@ -180,7 +180,6 @@ class UserControllerTest : AbstractIntegrationTest() {
             assertNotNull(errors)
             assertThat(errors)
                 .allMatch { it == "O campo nome é obrigatório e deve estar entre 1 e 255" }
-            9
         }
 
         @Test
