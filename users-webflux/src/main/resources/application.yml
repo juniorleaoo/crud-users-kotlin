@@ -3,10 +3,16 @@ server:
     context-path: /v1
 
 spring:
-  r2dbc:
-    url: ${SPRING_DATASOURCE_URL:r2dbc:postgresql://localhost:5432/app}
-    username: ${SPRING_DATASOURCE_USERNAME:admin}
+  datasource:
+    driverClassName: oracle.jdbc.OracleDriver
+    url: ${SPRING_DATASOURCE_URL:jdbc:oracle:thin:@localhost:1521:xe}
+    username: ${SPRING_DATASOURCE_USERNAME:system}
     password: ${SPRING_DATASOURCE_PASSWORD:123456}
+#  r2dbc:
+#    url: ${SPRING_DATASOURCE_URL:r2dbc:oracle:thin://localhost:1521:xe}
+#    url: ${SPRING_DATASOURCE_URL:r2dbc:oracle://localhost:1521/xe}
+#    username: ${SPRING_DATASOURCE_USERNAME:system}
+#    password: ${SPRING_DATASOURCE_PASSWORD:123456}
   jpa:
     hibernate:
       ddl-auto: none
