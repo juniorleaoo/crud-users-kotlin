@@ -4,6 +4,6 @@ server:
 spring:
   threads:
     virtual:
-      enabled: true
+      enabled: ${SPRING_THREADS_VIRTUAL:true}
   profiles:
     active: oracle

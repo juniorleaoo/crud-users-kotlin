@@ -43,7 +43,7 @@ class ApiSimulation : Simulation() {
                 constantUsersPerSec(2.0).during(Duration.ofSeconds(10)),
                 constantUsersPerSec(5.0).during(Duration.ofSeconds(15)).randomized(),
 
-                rampUsersPerSec(6.0).to(100.0).during(Duration.ofMinutes(3))
+                rampUsersPerSec(6.0).to(600.0).during(Duration.ofMinutes(3))
             )
         ).protocols(httpProtocol)
 
