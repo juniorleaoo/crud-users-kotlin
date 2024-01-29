@@ -1,0 +1,17 @@
+spring:
+  webflux:
+    base-path: /v1
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  r2dbc:
+  #    url: ${SPRING_DATASOURCE_URL:r2dbc:oracle:thin://localhost:1521:xe}
+    url: ${SPRING_DATASOURCE_URL:r2dbc:oracle://localhost:1521/xe}
+    username: ${SPRING_DATASOURCE_USERNAME:system}
+    password: ${SPRING_DATASOURCE_PASSWORD:123456}
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+logging:
+  level:
+    io.r2dbc: DEBUG
