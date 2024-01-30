@@ -20,8 +20,9 @@ abstract class AbstractIntegrationTest {
             DockerImageName
                 .parse("container-registry.oracle.com/database/express:21.3.0-xe")
                 .asCompatibleSubstituteFor("gvenzl/oracle-xe")
-        )
-            .withPassword("123456")
+        ).apply {
+            withEnv("ORACLE_PWD", "123456")
+        }
     }
 
     internal class Initializer : ApplicationContextInitializer<ConfigurableApplicationContext> {
@@ -29,6 +30,9 @@ abstract class AbstractIntegrationTest {
         override fun initialize(configurableApplicationContext: ConfigurableApplicationContext) {
             if (configurableApplicationContext.environment.activeProfiles.any { it == "oracle" }) {
                 oracleContainer.start()
+                TestPropertyValues.of(
+                    "spring.datasource.url=${oracleContainer.jdbcUrl}",
+                ).applyTo(configurableApplicationContext.environment)
 
             } else {
                 postgreSQLContainer.start()

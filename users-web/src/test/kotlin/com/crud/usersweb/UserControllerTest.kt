@@ -2,7 +2,10 @@ package com.crud.usersweb
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -22,7 +25,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.jdbc.JdbcTestUtils
 import java.net.URI
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UserControllerTest : AbstractIntegrationTest() {
@@ -58,7 +61,7 @@ class UserControllerTest : AbstractIntegrationTest() {
             )
 
             val createUserResponse = testRestTemplate.postForObject<UserResponse>(baseUrl, userRequest)
-            val userResponse = testRestTemplate.getForEntity<User>("$baseUrl/${createUserResponse?.id}")
+            val userResponse = testRestTemplate.getForEntity<UserResponse>("$baseUrl/${createUserResponse?.id}")
             assertNotNull(userResponse)
             assertEquals(HttpStatus.OK, userResponse.statusCode)
             val user = userResponse.body
@@ -71,7 +74,7 @@ class UserControllerTest : AbstractIntegrationTest() {
 
         @Test
         fun `Get user that not exists`() {
-            val userResponse = testRestTemplate.getForEntity<User>("$baseUrl/${UUID.randomUUID()}")
+            val userResponse = testRestTemplate.getForEntity<UserResponse>("$baseUrl/${UUID.randomUUID()}")
             assertNotNull(userResponse)
             assertEquals(HttpStatus.NOT_FOUND, userResponse.statusCode)
         }
