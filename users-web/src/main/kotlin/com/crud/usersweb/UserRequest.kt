@@ -16,6 +16,7 @@ data class CreateUserRequest(
 
 fun CreateUserRequest.toUser(): User {
     return User(
+        id = null,
         nick = nick,
         name = name,
         birthDate = birthDate,
@@ -24,11 +25,11 @@ fun CreateUserRequest.toUser(): User {
 }
 
 data class UpdateUserRequest(
-    var birthDate: LocalDateTime?,
+    var birthDate: LocalDateTime,
     @field:Size(min= 1, max = 32, message = "O campo apelido deve estar entre 1 e 32")
     var nick: String?,
     @field:Size(min = 1, max = 255, message = "O campo nome é obrigatório e deve estar entre 1 e 255")
-    var name: String?,
+    var name: String,
     @field:SizeElementsOfList
     var stack: List<String>?,
 ) {}

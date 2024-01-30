@@ -1,27 +1,34 @@
 package com.crud.usersweb
 
-import jakarta.persistence.*
+import jakarta.persistence.Column
+import jakarta.persistence.Convert
+import jakarta.persistence.Entity
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.Lob
+import jakarta.persistence.Table
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @Entity
 @Table(name = "users")
-class User(
+data class User(
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    val id: UUID?,
+
     @Column(name = "nick", length = 32)
-    var nick: String?,
+    val nick: String?,
 
     @Column(name = "name", length = 255, unique = true, nullable = false)
-    var name: String,
+    val name: String,
 
     @Column(name = "birth_date", nullable = false)
-    var birthDate: LocalDateTime,
+    val birthDate: LocalDateTime,
 
     @Convert(converter = StringListConverter::class)
     @Lob
     @Column(name = "stack")
-    var stack: List<String>?,
-) {
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    lateinit var id: UUID
-}
+    val stack: List<String>?,
+)
