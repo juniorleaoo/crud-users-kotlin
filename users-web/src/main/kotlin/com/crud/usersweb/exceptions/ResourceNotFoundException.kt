@@ -1,4 +1,4 @@
-package com.crud.usersweb
+package com.crud.usersweb.exceptions
 
 class ResourceNotFoundException(
     message: String,

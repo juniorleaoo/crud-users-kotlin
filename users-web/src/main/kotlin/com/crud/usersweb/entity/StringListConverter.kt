@@ -1,4 +1,4 @@
-package com.crud.usersweb
+package com.crud.usersweb.entity
 
 import jakarta.persistence.AttributeConverter
 import jakarta.persistence.Converter

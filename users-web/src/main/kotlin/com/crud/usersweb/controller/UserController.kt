@@ -1,5 +1,7 @@
-package com.crud.usersweb
+package com.crud.usersweb.controller
 
+import com.crud.usersweb.exceptions.ResourceNotFoundException
+import com.crud.usersweb.service.UserService
 import jakarta.validation.Valid
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -18,35 +20,35 @@ import java.util.UUID
 @RestController
 @RequestMapping("/users")
 class UserController(
-    private val userRepository: UserRepository
+    private val userService: UserService
 ) {
 
     @GetMapping("/{id}")
     fun getUser(@PathVariable("id") id: UUID): ResponseEntity<UserResponse> {
-        val user = userRepository.findById(id)
+        val user = userService.findById(id)
             .orElseThrow { ResourceNotFoundException("User not found") }
         return ResponseEntity.ok(user.toUserResponse())
     }
 
     @GetMapping
     fun listUsers(): ResponseEntity<List<UserResponse>> {
-        val users = userRepository.findAll()
+        val users = userService.findAll()
         return ResponseEntity.ok(users.map { it.toUserResponse() })
     }
 
     @DeleteMapping("/{id}")
     fun deleteUser(@PathVariable("id") id: UUID): ResponseEntity<Nothing> {
-        if (!userRepository.existsById(id)) {
+        if (!userService.existsById(id)) {
             return ResponseEntity.notFound().build()
         }
-        userRepository.deleteById(id)
+        userService.deleteById(id)
         return ResponseEntity.noContent().build()
     }
 
     @PostMapping
     fun createUser(@Valid @RequestBody createUserRequest: CreateUserRequest): ResponseEntity<UserResponse> {
         val user = createUserRequest.toUser()
-        val userCreated = userRepository.save(user)
+        val userCreated = userService.save(user)
 
         val httpHeaders = HttpHeaders()
         httpHeaders.location = URI.create("/users/${userCreated.id}")
@@ -58,7 +60,7 @@ class UserController(
         @PathVariable("id") id: UUID,
         @Valid @RequestBody updateUserRequest: UpdateUserRequest
     ): ResponseEntity<UserResponse> {
-        val userUpdated = userRepository.findById(id)
+        val userUpdated = userService.findById(id)
             .orElseThrow { ResourceNotFoundException("User not found") }
             .copy(
                 nick = updateUserRequest.nick,
@@ -66,7 +68,7 @@ class UserController(
                 birthDate = updateUserRequest.birthDate,
                 stack = updateUserRequest.stack,
             )
-            .run { userRepository.save(this) }
+            .run { userService.save(this) }
         return ResponseEntity.ok(userUpdated.toUserResponse())
     }
 

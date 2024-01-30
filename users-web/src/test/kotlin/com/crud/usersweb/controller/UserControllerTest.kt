@@ -1,5 +1,7 @@
-package com.crud.usersweb
+package com.crud.usersweb.controller
 
+import com.crud.usersweb.AbstractIntegrationTest
+import com.crud.usersweb.handlers.ErrorsResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -117,13 +119,15 @@ class UserControllerTest : AbstractIntegrationTest() {
                 .hasSize(1)
                 .first()
                 .usingRecursiveComparison()
-                .isEqualTo(UserResponse(
+                .isEqualTo(
+                    UserResponse(
                     id = userCreated.id,
                     name = userRequest.name,
                     nick = userRequest.nick,
                     birthDate = userRequest.birthDate,
                     stack = userRequest.stack,
-                ))
+                )
+                )
         }
 
     }

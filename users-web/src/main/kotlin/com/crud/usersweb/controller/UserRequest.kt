@@ -1,5 +1,6 @@
-package com.crud.usersweb
+package com.crud.usersweb.controller
 
+import com.crud.usersweb.entity.User
 import jakarta.validation.constraints.Size
 import java.time.LocalDateTime
 

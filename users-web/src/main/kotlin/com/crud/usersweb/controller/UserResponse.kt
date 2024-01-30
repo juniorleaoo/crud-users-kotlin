@@ -1,4 +1,4 @@
-package com.crud.usersweb
+package com.crud.usersweb.controller
 
 import java.time.LocalDateTime
 import java.util.UUID
