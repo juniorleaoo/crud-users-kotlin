@@ -20,7 +20,6 @@ repositories {
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
-//    implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
@@ -34,6 +33,12 @@ dependencies {
     runtimeOnly("com.oracle.database.r2dbc:oracle-r2dbc")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
+
+    testImplementation("org.testcontainers:testcontainers:1.19.3")
+    testImplementation("org.testcontainers:oracle-xe:1.19.3")
+
+    implementation("org.flywaydb:flyway-core:10.6.0")
+    implementation("org.flywaydb:flyway-database-oracle:10.6.0")
 }
 
 tasks.withType<KotlinCompile> {
