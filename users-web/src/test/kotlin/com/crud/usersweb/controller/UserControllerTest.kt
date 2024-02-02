@@ -1,13 +1,13 @@
 package com.crud.usersweb.controller
 
 import com.crud.usersweb.AbstractIntegrationTest
-import com.crud.usersweb.handlers.ErrorsResponse
+import com.crud.usersweb.exceptions.APIErrorEnum.NOT_FOUND
+import com.crud.usersweb.exceptions.handlers.ErrorsResponse
+import com.crud.usersweb.repository.UserRepository
+import com.crud.usersweb.utils.PopulateUsers
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -27,18 +27,21 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.jdbc.JdbcTestUtils
 import java.net.URI
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class UserControllerTest : AbstractIntegrationTest() {
+class UserControllerTest(
+    @Autowired val testRestTemplate: TestRestTemplate,
+    @Autowired userRepository: UserRepository
+) : AbstractIntegrationTest() {
 
     @LocalServerPort
     private var port: Int = 0
-
-    @Autowired
-    lateinit var testRestTemplate: TestRestTemplate
-
     private var baseUrl: String = "http://localhost"
+    private val populateUsers = PopulateUsers(userRepository)
+//    @Autowired
+//    lateinit var testRestTemplate: TestRestTemplate
+
 
     @BeforeEach
     fun setUp() {
@@ -76,9 +79,14 @@ class UserControllerTest : AbstractIntegrationTest() {
 
         @Test
         fun `Get user that not exists`() {
-            val userResponse = testRestTemplate.getForEntity<UserResponse>("$baseUrl/${UUID.randomUUID()}")
+            val userResponse = testRestTemplate.getForEntity<ErrorsResponse>("$baseUrl/${UUID.randomUUID()}")
             assertNotNull(userResponse)
             assertEquals(HttpStatus.NOT_FOUND, userResponse.statusCode)
+            val errorsResponse = userResponse.body as ErrorsResponse
+            assertThat(errorsResponse.errorMessages)
+                .isNotNull
+                .hasSize(1)
+                .allMatch { it.code == NOT_FOUND.code && it.description == NOT_FOUND.description }
         }
 
     }
@@ -88,11 +96,16 @@ class UserControllerTest : AbstractIntegrationTest() {
 
         @Test
         fun `List users when not have users`() {
-            val response = testRestTemplate.getForEntity<List<UserResponse>>(baseUrl)
+            val response = testRestTemplate.getForEntity<PageResponse<UserResponse>>(baseUrl)
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.OK)
-            val users = response.body as ArrayList<UserResponse>
-            assertTrue(users.isEmpty())
+            val usersPageResponse = response.body as PageResponse<UserResponse>
+            assertEquals(0, usersPageResponse.page)
+            assertEquals(15, usersPageResponse.pageSize)
+            assertEquals(0, usersPageResponse.total)
+            assertThat(usersPageResponse.records)
+                .isNotNull
+                .hasSize(0)
         }
 
         @Test
@@ -108,26 +121,49 @@ class UserControllerTest : AbstractIntegrationTest() {
 
             val response = testRestTemplate.exchange(
                 RequestEntity.get(URI(baseUrl)).build(),
-                object : ParameterizedTypeReference<List<UserResponse>>() {})
+                object : ParameterizedTypeReference<PageResponse<UserResponse>>() {})
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.OK)
 
-            val users: List<UserResponse>? = response.body
-            assertThat(users)
+            val usersPageResponse: PageResponse<UserResponse> = response.body!!
+            assertEquals(0, usersPageResponse.page)
+            assertEquals(15, usersPageResponse.pageSize)
+            assertEquals(1, usersPageResponse.total)
+
+            assertThat(usersPageResponse.records)
                 .isNotNull()
                 .hasSize(1)
                 .first()
                 .usingRecursiveComparison()
                 .isEqualTo(
                     UserResponse(
-                    id = userCreated.id,
-                    name = userRequest.name,
-                    nick = userRequest.nick,
-                    birthDate = userRequest.birthDate,
-                    stack = userRequest.stack,
+                        id = userCreated.id,
+                        name = userRequest.name,
+                        nick = userRequest.nick,
+                        birthDate = userRequest.birthDate,
+                        stack = userRequest.stack,
+                    )
                 )
-                )
+        }
+
+        @Test
+        fun `List users on page 2 with 10 itens per page`() {
+            val amountUsers = 50L
+            populateUsers.createUser(amountUsers)
+
+            val response = testRestTemplate.exchange(
+                RequestEntity.get(URI("$baseUrl?page=2&page_size=10")).build(),
+                object : ParameterizedTypeReference<PageResponse<UserResponse>>() {})
+
+            assertNotNull(response)
+            assertEquals(response.statusCode, HttpStatus.PARTIAL_CONTENT)
+
+            val usersPageResponse: PageResponse<UserResponse> = response.body!!
+            assertEquals(2, usersPageResponse.page)
+            assertEquals(10, usersPageResponse.pageSize)
+            assertEquals(amountUsers, usersPageResponse.total)
+            assertThat(usersPageResponse.records).isNotNull().hasSize(10)
         }
 
     }
@@ -182,11 +218,11 @@ class UserControllerTest : AbstractIntegrationTest() {
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.BAD_REQUEST)
-            val errors = response.body?.errors
+            val errors = response.body?.errorMessages
 
             assertNotNull(errors)
             assertThat(errors)
-                .allMatch { it == "O campo nome é obrigatório e deve estar entre 1 e 255" }
+                .allMatch { it.description == "O campo nome é obrigatório e deve estar entre 1 e 255" }
         }
 
         @Test
@@ -203,11 +239,11 @@ class UserControllerTest : AbstractIntegrationTest() {
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.BAD_REQUEST)
-            val errors = response.body?.errors
+            val errors = response.body?.errorMessages
 
             assertNotNull(errors)
             assertThat(errors)
-                .allMatch { it == "Os elementos da lista devem estar entre 1 e 32" }
+                .allMatch { it.description == "Os elementos da lista devem estar entre 1 e 32" }
         }
 
         @Test
