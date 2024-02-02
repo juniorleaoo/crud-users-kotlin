@@ -39,9 +39,6 @@ class UserControllerTest(
     private var port: Int = 0
     private var baseUrl: String = "http://localhost"
     private val populateUsers = PopulateUsers(userRepository)
-//    @Autowired
-//    lateinit var testRestTemplate: TestRestTemplate
-
 
     @BeforeEach
     fun setUp() {
@@ -267,6 +264,28 @@ class UserControllerTest(
             assertEquals(user.name, userRequest.name)
             assertEquals(user.birthDate, userRequest.birthDate)
             assertNull(user.stack)
+        }
+
+        @Test
+        fun `Not create user when date is invalid`() {
+            val response = testRestTemplate.postForEntity(
+                baseUrl,
+                """
+                    {
+                        "name": "Fulano",
+                        "birth_date": "2024-10-0101:10"
+                    }
+                """,
+                ErrorsResponse::class.java
+            )
+
+            assertNotNull(response)
+            assertEquals(response.statusCode, HttpStatus.BAD_REQUEST)
+            val errors = response.body?.errorMessages
+
+            assertNotNull(errors)
+            assertThat(errors)
+                .allMatch { it.description == "Os elementos da lista devem estar entre 1 e 32" }
         }
 
     }

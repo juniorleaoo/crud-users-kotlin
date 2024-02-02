@@ -2,9 +2,11 @@ package com.crud.usersweb.controller
 
 import com.crud.usersweb.entity.User
 import jakarta.validation.constraints.Size
+import org.springframework.format.annotation.DateTimeFormat
 import java.time.LocalDateTime
 
 data class CreateUserRequest(
+    @field:DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     val birthDate: LocalDateTime,
     @field:Size(min = 1, max = 32, message = "O campo apelido deve estar entre 1 e 32")
     val nick: String?,
@@ -26,6 +28,7 @@ fun CreateUserRequest.toUser(): User {
 }
 
 data class UpdateUserRequest(
+    @field:DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     var birthDate: LocalDateTime,
     @field:Size(min= 1, max = 32, message = "O campo apelido deve estar entre 1 e 32")
     var nick: String?,
