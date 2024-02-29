@@ -1,7 +1,8 @@
 package com.crud.usersweb.controller
 
+import com.crud.usersweb.entity.Stack
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 data class UserResponse(
     val id: UUID?,
@@ -15,4 +16,6 @@ data class UserResponse(
 data class StackResponse(
     val name: String,
     val level: Int
-)
+) {
+    constructor(stack: Stack) : this(stack.name, stack.level)
+}

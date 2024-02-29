@@ -9,7 +9,7 @@ import com.crud.usersweb.repository.UserRepository
 import org.springframework.data.domain.Page
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.*
+import java.util.UUID
 
 @Transactional
 @Service
@@ -57,5 +57,7 @@ class UserService(
             userRepository.save(this)
         }
     }
+
+    fun findAllStacksByUserId(id: UUID) = stackRepository.findAllByUserId(id)
 
 }
