@@ -23,7 +23,10 @@ class UserService(
     fun findAll(): MutableIterable<User> = userRepository.findAll()
 
     fun findAll(pagination: Pagination): Page<User> {
-        return userRepository.findAll(pagination.pageable)
+        if(count() > 0){
+            return userRepository.findAll(pagination.pageable)
+        }
+        return Page.empty(pagination.pageable)
     }
 
     fun count(): Long = userRepository.count()

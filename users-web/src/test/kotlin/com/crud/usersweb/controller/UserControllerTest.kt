@@ -46,7 +46,7 @@ class UserControllerTest(
         userRepository.deleteAll()
     }
 
-    @Nested//
+    @Nested
     inner class GetUser {
 
         @Test
