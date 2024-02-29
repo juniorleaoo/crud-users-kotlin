@@ -3,35 +3,28 @@ package com.crud.usersweb.controller
 import com.crud.usersweb.AbstractIntegrationTest
 import com.crud.usersweb.exceptions.APIErrorEnum.DATE_TIME_INVALID_FORMAT
 import com.crud.usersweb.exceptions.APIErrorEnum.NOT_FOUND
+import com.crud.usersweb.exceptions.handlers.ErrorMessage
 import com.crud.usersweb.exceptions.handlers.ErrorsResponse
 import com.crud.usersweb.repository.UserRepository
 import com.crud.usersweb.utils.PopulateUsers
+import com.crud.usersweb.utils.typeOf
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.client.TestRestTemplate
-import org.springframework.boot.test.web.client.exchange
-import org.springframework.boot.test.web.client.getForEntity
-import org.springframework.boot.test.web.client.postForEntity
-import org.springframework.boot.test.web.client.postForObject
+import org.springframework.boot.test.web.client.*
 import org.springframework.boot.test.web.server.LocalServerPort
-import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.RequestEntity
 import java.net.URI
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
+@Tag("integration")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UserControllerTest(
     @Autowired val testRestTemplate: TestRestTemplate,
@@ -101,7 +94,7 @@ class UserControllerTest(
 
     }
 
-    @Nested//
+    @Nested
     inner class ListUser {
 
         @Test
@@ -135,7 +128,7 @@ class UserControllerTest(
 
             val response = testRestTemplate.exchange(
                 RequestEntity.get(URI(baseUrl)).build(),
-                object : ParameterizedTypeReference<PageResponse<UserResponse>>() {})
+                typeOf<PageResponse<UserResponse>>())
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.OK)
@@ -168,7 +161,7 @@ class UserControllerTest(
 
             val response = testRestTemplate.exchange(
                 RequestEntity.get(URI("$baseUrl?page=2&page_size=10")).build(),
-                object : ParameterizedTypeReference<PageResponse<UserResponse>>() {})
+                typeOf<PageResponse<UserResponse>>())
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.PARTIAL_CONTENT)
@@ -189,7 +182,7 @@ class UserControllerTest(
 
             val response = testRestTemplate.exchange(
                 RequestEntity.get(URI("$baseUrl?page=1&page_size=10&sort=-name")).build(),
-                object : ParameterizedTypeReference<PageResponse<UserResponse>>() {})
+                typeOf<PageResponse<UserResponse>>())
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.PARTIAL_CONTENT)
@@ -389,7 +382,7 @@ class UserControllerTest(
             assertThat(errors)
                 .isNotNull
                 .hasSizeGreaterThanOrEqualTo(1)
-                .allMatch { it.description == "Os elementos da lista devem estar entre 1 e 32" }
+                .allMatch { it.description == "Formato inválido de stack" }
         }
 
         @Test
@@ -434,12 +427,13 @@ class UserControllerTest(
             assertThat(errors)
                 .isNotNull
                 .hasSizeGreaterThanOrEqualTo(1)
-                .allMatch { it.code == DATE_TIME_INVALID_FORMAT.code && it.description == DATE_TIME_INVALID_FORMAT.description }
+                .first()
+                .isEqualTo(ErrorMessage(DATE_TIME_INVALID_FORMAT.code, DATE_TIME_INVALID_FORMAT.description))
         }
 
     }
 
-    @Nested//
+    @Nested
     inner class DeleteUser {
 
         @Test
@@ -480,7 +474,7 @@ class UserControllerTest(
 
     }
 
-    @Nested//
+    @Nested
     inner class UpdateUser {
 
         @Test
@@ -528,6 +522,115 @@ class UserControllerTest(
             assertThat(userUpdated.stack)
                 .isNotNull()
                 .isEmpty()
+        }
+
+    }
+
+    @Nested
+    inner class GetStacks {
+
+        @Test
+        fun `Should return an empty list of stacks`() {
+            val userRequest = UserRequest(
+                name = "Name",
+                nick = "nick",
+                birthDate = LocalDateTime.of(2024, 1, 17, 1, 1),
+                stack = setOf()
+            )
+
+            val createUserResponse = testRestTemplate.postForObject<UserResponse>(baseUrl, userRequest)
+            val stacksResponse = testRestTemplate.exchange(
+                RequestEntity.get(URI("$baseUrl/${createUserResponse?.id}/stacks")).build(),
+                typeOf<List<StackResponse>>())
+
+            assertNotNull(stacksResponse)
+            assertEquals(HttpStatus.OK, stacksResponse.statusCode)
+            assertThat(stacksResponse.body)
+                .isNotNull()
+                .hasSize(0)
+        }
+
+        @Test
+        fun `Should list of stacks`() {
+            val userRequest = UserRequest(
+                name = "Name",
+                nick = "nick",
+                birthDate = LocalDateTime.of(2024, 1, 17, 1, 1),
+                stack = setOf(StackRequest("NodeJS", 100), StackRequest("Java", 100))
+            )
+
+            val createUserResponse = testRestTemplate.postForObject<UserResponse>(baseUrl, userRequest)
+            val stacksResponse = testRestTemplate.exchange(
+                RequestEntity.get(URI("$baseUrl/${createUserResponse?.id}/stacks")).build(),
+                typeOf<List<StackResponse>>())
+
+            assertNotNull(stacksResponse)
+            assertEquals(HttpStatus.OK, stacksResponse.statusCode)
+            assertThat(stacksResponse.body as List<StackResponse>)
+                .isNotNull()
+                .hasSize(2)
+                .containsExactlyInAnyOrder(StackResponse("NodeJS", 100), StackResponse("Java", 100))
+        }
+
+        @Test
+        fun `Should list same stacks of user after update user`() {
+            val userRequest = UserRequest(
+                name = "Name",
+                nick = "nick",
+                birthDate = LocalDateTime.now(),
+                stack = setOf(StackRequest("NodeJS", 100))
+            )
+
+            val createUserResponse = testRestTemplate.postForEntity<UserResponse>(baseUrl, userRequest)
+            val userCreated = createUserResponse.body as UserResponse
+
+            val stacksResponse = testRestTemplate.exchange<List<StackResponse>>(
+                RequestEntity.get(URI("$baseUrl/${userCreated.id}/stacks")).build()
+            )
+
+            assertNotNull(stacksResponse)
+            assertEquals(HttpStatus.OK, stacksResponse.statusCode)
+            assertThat(stacksResponse.body)
+                .isNotNull
+                .hasSize(1)
+                .containsExactlyInAnyOrder(StackResponse("NodeJS", 100))
+
+            val updateUserRequest = UserRequest(
+                name = "Name 2",
+                nick = "nick 2",
+                birthDate = userCreated.birthDate,
+                stack = userCreated.stack?.map { StackRequest(it.name, it.level) }?.toSet()
+            )
+
+            testRestTemplate.exchange(
+                RequestEntity<UserRequest>(
+                    updateUserRequest,
+                    HttpMethod.PUT,
+                    URI("$baseUrl/${userCreated.id}")
+                ), UserResponse::class.java
+            )
+
+            val stacksResponseAfterUpdate = testRestTemplate.exchange(
+                RequestEntity.get(URI("$baseUrl/${userCreated.id}/stacks")).build(),
+                typeOf<List<StackResponse>>())
+            assertNotNull(stacksResponseAfterUpdate)
+            assertEquals(HttpStatus.OK, stacksResponseAfterUpdate.statusCode)
+            assertThat(stacksResponseAfterUpdate.body)
+                .isNotNull
+                .hasSize(1)
+                .containsExactlyInAnyOrder(StackResponse("NodeJS", 100))
+        }
+
+        @Test
+        fun `Should return not found when user id not exists`() {
+            val userResponse = testRestTemplate.getForEntity<ErrorsResponse>("$baseUrl/${UUID.randomUUID()}/stacks")
+            assertNotNull(userResponse)
+            assertEquals(HttpStatus.NOT_FOUND, userResponse.statusCode)
+            val errorsResponse = userResponse.body as ErrorsResponse
+            assertThat(errorsResponse.errorMessages)
+                .isNotNull
+                .hasSizeGreaterThanOrEqualTo(1)
+                .allMatch { it.code == NOT_FOUND.code && it.description == NOT_FOUND.description }
         }
 
     }

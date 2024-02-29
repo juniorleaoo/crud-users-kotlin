@@ -6,7 +6,6 @@ import com.crud.usersweb.exceptions.APIErrorEnum.INVALID_FORMAT
 import com.crud.usersweb.exceptions.ResourceNotFoundException
 import com.fasterxml.jackson.databind.exc.InvalidFormatException
 import jakarta.servlet.http.HttpServletRequest
-import org.springframework.context.MessageSource
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
@@ -14,7 +13,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import java.time.format.DateTimeParseException
-import java.util.*
 
 data class ErrorsResponse(
     var errorMessages: List<ErrorMessage> = mutableListOf()
@@ -37,16 +35,7 @@ data class ErrorMessage(
 )
 
 @ControllerAdvice
-class ExceptionHandler(
-    private val messageSource: MessageSource
-) {
-
-//    @Bean
-//    fun messageSource(): MessageSource {
-//        val messageSource = ReloadableResourceBundleMessageSource()
-//        messageSource.setDefaultLocale(Locale.)
-//        return messageSource
-//    }
+class ExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException::class)
     fun resourceNotFoundException(
@@ -83,15 +72,18 @@ class ExceptionHandler(
         req: HttpServletRequest,
         exception: HttpMessageNotReadableException
     ): ResponseEntity<ErrorsResponse> {
+        val cause = exception.cause
+        if (cause is InvalidFormatException) {
+            val parentCause = cause.cause
+            if(parentCause is DateTimeParseException) return dateTimeParseException(req, parentCause)
 
-        if (exception.cause is InvalidFormatException) {
-            val body = (exception.cause as InvalidFormatException)
+            val body = cause
                 .path
                 .mapNotNull { it.fieldName }
                 .map {
                     ErrorMessage(
                         INVALID_FORMAT.code,
-                        messageSource.getMessage(INVALID_FORMAT.description, arrayOf(it), Locale.getDefault())
+                        INVALID_FORMAT.description.replace("{0}", it)
                     )
                 }
 

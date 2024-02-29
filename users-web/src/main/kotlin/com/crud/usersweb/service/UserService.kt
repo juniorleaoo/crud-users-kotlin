@@ -9,7 +9,7 @@ import com.crud.usersweb.repository.UserRepository
 import org.springframework.data.domain.Page
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.UUID
+import java.util.*
 
 @Transactional
 @Service
@@ -58,6 +58,12 @@ class UserService(
         }
     }
 
-    fun findAllStacksByUserId(id: UUID) = stackRepository.findAllByUserId(id)
+    fun findAllStacksByUserId(id: UUID): List<Stack> {
+        return userRepository.findById(id)
+            .orElseThrow { ResourceNotFoundException("User not found") }
+            .run {
+                stackRepository.findAllByUserId(this.id!!)
+            }
+    }
 
 }
