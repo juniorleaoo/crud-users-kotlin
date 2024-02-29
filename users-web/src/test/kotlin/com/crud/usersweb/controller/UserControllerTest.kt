@@ -8,7 +8,9 @@ import com.crud.usersweb.repository.UserRepository
 import com.crud.usersweb.utils.PopulateUsers
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -19,6 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.boot.test.web.client.exchange
 import org.springframework.boot.test.web.client.getForEntity
+import org.springframework.boot.test.web.client.postForEntity
 import org.springframework.boot.test.web.client.postForObject
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.core.ParameterizedTypeReference
@@ -27,7 +30,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.RequestEntity
 import java.net.URI
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UserControllerTest(
@@ -54,7 +57,7 @@ class UserControllerTest(
     inner class GetUser {
 
         @Test
-        fun `Get user by id`() {
+        fun `Should get user by id`() {
             val stackRequest = StackRequest(
                 name = "NodeJS",
                 level = 100
@@ -85,7 +88,7 @@ class UserControllerTest(
         }
 
         @Test
-        fun `Get user that not exists`() {
+        fun `Should return not found when user id not exists`() {
             val userResponse = testRestTemplate.getForEntity<ErrorsResponse>("$baseUrl/${UUID.randomUUID()}")
             assertNotNull(userResponse)
             assertEquals(HttpStatus.NOT_FOUND, userResponse.statusCode)
@@ -102,7 +105,7 @@ class UserControllerTest(
     inner class ListUser {
 
         @Test
-        fun `List users when not have users`() {
+        fun `Should return an empty list users when not have users`() {
             val response = testRestTemplate.getForEntity<PageResponse<UserResponse>>(baseUrl)
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.OK)
@@ -116,7 +119,7 @@ class UserControllerTest(
         }
 
         @Test
-        fun `List users when have one user`() {
+        fun `Should list users when have one user`() {
             val stackRequest = StackRequest(
                 name = "NodeJS",
                 level = 99
@@ -159,7 +162,7 @@ class UserControllerTest(
         }
 
         @Test
-        fun `List users on page 2 with 10 itens per page`() {
+        fun `Should list users on page 2 with 10 itens per page`() {
             val amountUsers = 50L
             populateUsers.createUser(amountUsers)
 
@@ -174,7 +177,9 @@ class UserControllerTest(
             assertEquals(2, usersPageResponse.page)
             assertEquals(10, usersPageResponse.pageSize)
             assertEquals(amountUsers, usersPageResponse.total)
-            assertThat(usersPageResponse.records).isNotNull().hasSize(10)
+            assertThat(usersPageResponse.records)
+                .isNotNull()
+                .hasSize(10)
         }
 
         @Test
@@ -204,7 +209,7 @@ class UserControllerTest(
     inner class CreateUser {
 
         @Test
-        fun `Create User`() {
+        fun `Should create a complete user with success`() {
             val stackRequest = StackRequest(
                 name = "NodeJS",
                 level = 100
@@ -217,7 +222,7 @@ class UserControllerTest(
             )
 
             val response =
-                testRestTemplate.postForEntity(baseUrl, userRequest, UserResponse::class.java)
+                testRestTemplate.postForEntity<UserResponse>(baseUrl, userRequest)
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.CREATED)
@@ -236,7 +241,41 @@ class UserControllerTest(
                 .isEqualTo(StackResponse(stackRequest.name, stackRequest.level))
         }
 
-        fun `Not create user when nick is invalid value`() {
+        @Test
+        fun `Should create user when nick has 30 characters`() {
+            val stackRequest = StackRequest(
+                name = "NodeJS",
+                level = 100
+            )
+            val userRequest = UserRequest(
+                name = "Name",
+                nick = "n".repeat(30),
+                birthDate = LocalDateTime.now(),
+                stack = setOf(stackRequest)
+            )
+
+            val response =
+                testRestTemplate.postForEntity<UserResponse>(baseUrl, userRequest)
+
+            assertNotNull(response)
+            assertEquals(response.statusCode, HttpStatus.CREATED)
+            val user = response.body as UserResponse
+            assertNotNull(user)
+            assertNotNull(user.id)
+            assertEquals(response.headers.location.toString(), "/users/${user.id}")
+            assertEquals(userRequest.nick, user.nick)
+            assertEquals(userRequest.name, user.name)
+            assertEquals(userRequest.birthDate, user.birthDate)
+            assertThat(user.stack)
+                .isNotNull()
+                .hasSize(1)
+                .first()
+                .usingDefaultComparator()
+                .isEqualTo(StackResponse(stackRequest.name, stackRequest.level))
+        }
+
+        @Test
+        fun `Should not create user when nick has more 30 characters`() {
             val userRequest = UserRequest(
                 name = "Name",
                 nick = "nick".repeat(30),
@@ -301,7 +340,7 @@ class UserControllerTest(
                         "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc"
             ]
         )
-        fun `Not create user when name is invalid value`(name: String) {
+        fun `Should not create user when name is invalid value`(name: String) {
             val userRequest = UserRequest(
                 name = name,
                 nick = "nick",
@@ -315,7 +354,7 @@ class UserControllerTest(
             )
 
             val response =
-                testRestTemplate.postForEntity(baseUrl, userRequest, ErrorsResponse::class.java)
+                testRestTemplate.postForEntity<ErrorsResponse>(baseUrl, userRequest)
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.BAD_REQUEST)
@@ -332,7 +371,7 @@ class UserControllerTest(
         }
 
         @Test
-        fun `Not create user when have empty value on stack`() {
+        fun `Should not create user when stack is empty`() {
             val response = testRestTemplate.exchange<ErrorsResponse>(
                 RequestEntity.post(baseUrl).body(mapOf(
                     "name" to "Fulano",
@@ -354,7 +393,7 @@ class UserControllerTest(
         }
 
         @Test
-        fun `Should create user when not have stack`() {
+        fun `Should create user stack is null`() {
             val userRequest = UserRequest(
                 name = "Name",
                 nick = "nick",
@@ -379,7 +418,7 @@ class UserControllerTest(
         }
 
         @Test
-        fun `Not create user when date is invalid`() {
+        fun `Should not create user when date is invalid`() {
             val response = testRestTemplate.exchange<ErrorsResponse>(
                 RequestEntity.post(baseUrl).body(mapOf(
                     "name" to "Fulano",
@@ -404,7 +443,7 @@ class UserControllerTest(
     inner class DeleteUser {
 
         @Test
-        fun `Delete user by id`() {
+        fun `Should delete user by id with success`() {
             val userRequest = UserRequest(
                 name = "Name",
                 nick = "nick",
@@ -428,7 +467,7 @@ class UserControllerTest(
         }
 
         @Test
-        fun `Delete user that not exists`() {
+        fun `Should return not found when delete user id not exists`() {
             val userId = UUID.randomUUID()
             val userDeletedResponse = testRestTemplate.exchange(
                 RequestEntity.delete(URI("$baseUrl/$userId")).build(),
