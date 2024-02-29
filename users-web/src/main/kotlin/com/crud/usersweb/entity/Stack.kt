@@ -2,34 +2,33 @@ package com.crud.usersweb.entity
 
 import jakarta.persistence.*
 import org.hibernate.annotations.UuidGenerator
-import java.time.LocalDateTime
 import java.util.*
 
 @Entity
-@Table(name = "users")
-data class User(
+@Table(
+    name = "stacks",
+    uniqueConstraints = [UniqueConstraint(columnNames = ["user_id", "name"])]
+)
+data class Stack(
     @Id
     @UuidGenerator
     val id: UUID?,
 
-    @Column(name = "nick", length = 32)
-    val nick: String?,
-
-    @Column(name = "name", length = 255, unique = true, nullable = false)
+    @Column(name = "name", length = 32, nullable = false)
     val name: String,
 
-    @Column(name = "birth_date", nullable = false)
-    val birthDate: LocalDateTime,
+    @Column(name = "score", nullable = false)
+    val level: Int,
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
-    val stack: MutableSet<Stack>?,
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    val user: User
 ) {
 
     override fun equals(other: Any?): Boolean {
-        if (other is User){
+        if (other is Stack){
             return if(other.id != null && id != null) id == other.id else super.equals(other)
         }
-
         return false
     }
 

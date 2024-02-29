@@ -55,8 +55,8 @@ class UserController(
     }
 
     @PostMapping
-    fun createUser(@Valid @RequestBody createUserRequest: CreateUserRequest): ResponseEntity<UserResponse> {
-        val user = createUserRequest.toUser()
+    fun createUser(@Valid @RequestBody userRequest: UserRequest): ResponseEntity<UserResponse> {
+        val user = userRequest.toUser()
         val userCreated = userService.save(user)
 
         val httpHeaders = HttpHeaders()
@@ -67,17 +67,9 @@ class UserController(
     @PutMapping("/{id}")
     fun updateUser(
         @PathVariable("id") id: UUID,
-        @Valid @RequestBody updateUserRequest: UpdateUserRequest
+        @Valid @RequestBody userRequest: UserRequest
     ): ResponseEntity<UserResponse> {
-        val userUpdated = userService.findById(id)
-            .orElseThrow { ResourceNotFoundException("User not found") }
-            .copy(
-                nick = updateUserRequest.nick,
-                name = updateUserRequest.name,
-                birthDate = updateUserRequest.birthDate,
-                stack = updateUserRequest.stack,
-            )
-            .run { userService.save(this) }
+        val userUpdated = userService.update(id, userRequest.toUser())
         return ResponseEntity.ok(userUpdated.toUserResponse())
     }
 

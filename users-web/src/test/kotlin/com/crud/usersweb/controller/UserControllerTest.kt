@@ -1,6 +1,7 @@
 package com.crud.usersweb.controller
 
 import com.crud.usersweb.AbstractIntegrationTest
+import com.crud.usersweb.exceptions.APIErrorEnum.DATE_TIME_INVALID_FORMAT
 import com.crud.usersweb.exceptions.APIErrorEnum.NOT_FOUND
 import com.crud.usersweb.exceptions.handlers.ErrorsResponse
 import com.crud.usersweb.repository.UserRepository
@@ -16,6 +17,7 @@ import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.client.TestRestTemplate
+import org.springframework.boot.test.web.client.exchange
 import org.springframework.boot.test.web.client.getForEntity
 import org.springframework.boot.test.web.client.postForObject
 import org.springframework.boot.test.web.server.LocalServerPort
@@ -23,8 +25,6 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.RequestEntity
-import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.jdbc.JdbcTestUtils
 import java.net.URI
 import java.time.LocalDateTime
 import java.util.*
@@ -32,7 +32,7 @@ import java.util.*
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UserControllerTest(
     @Autowired val testRestTemplate: TestRestTemplate,
-    @Autowired userRepository: UserRepository
+    @Autowired val userRepository: UserRepository
 ) : AbstractIntegrationTest() {
 
     @LocalServerPort
@@ -46,32 +46,42 @@ class UserControllerTest(
     }
 
     @AfterEach
-    fun setDown(@Autowired jdbcTemplate: JdbcTemplate) {
-        JdbcTestUtils.deleteFromTables(jdbcTemplate, "users")
+    fun setDown() {
+        userRepository.deleteAll()
     }
 
-    @Nested
+    @Nested//
     inner class GetUser {
 
         @Test
         fun `Get user by id`() {
-            val userRequest = CreateUserRequest(
+            val stackRequest = StackRequest(
+                name = "NodeJS",
+                level = 100
+            )
+            val userRequest = UserRequest(
                 name = "Name",
                 nick = "nick",
                 birthDate = LocalDateTime.of(2024, 1, 17, 1, 1),
-                stack = listOf("NodeJS")
+                stack = setOf(stackRequest)
             )
 
             val createUserResponse = testRestTemplate.postForObject<UserResponse>(baseUrl, userRequest)
             val userResponse = testRestTemplate.getForEntity<UserResponse>("$baseUrl/${createUserResponse?.id}")
             assertNotNull(userResponse)
             assertEquals(HttpStatus.OK, userResponse.statusCode)
-            val user = userResponse.body
-            assertNotNull(user?.id)
-            assertEquals(userRequest.nick, user?.nick)
-            assertEquals(userRequest.name, user?.name)
-            assertEquals(userRequest.birthDate, user?.birthDate)
-            assertEquals(userRequest.stack, user?.stack)
+            assertNotNull(userResponse.body)
+            val user = userResponse.body as UserResponse
+            assertNotNull(user.id)
+            assertEquals(userRequest.nick, user.nick)
+            assertEquals(userRequest.name, user.name)
+            assertEquals(userRequest.birthDate, user.birthDate)
+            assertThat(user.stack)
+                .isNotNull()
+                .hasSize(1)
+                .first()
+                .usingDefaultComparator()
+                .isEqualTo(StackResponse(stackRequest.name, stackRequest.level))
         }
 
         @Test
@@ -82,13 +92,13 @@ class UserControllerTest(
             val errorsResponse = userResponse.body as ErrorsResponse
             assertThat(errorsResponse.errorMessages)
                 .isNotNull
-                .hasSize(1)
+                .hasSizeGreaterThanOrEqualTo(1)
                 .allMatch { it.code == NOT_FOUND.code && it.description == NOT_FOUND.description }
         }
 
     }
 
-    @Nested
+    @Nested//
     inner class ListUser {
 
         @Test
@@ -107,11 +117,15 @@ class UserControllerTest(
 
         @Test
         fun `List users when have one user`() {
-            val userRequest = CreateUserRequest(
+            val stackRequest = StackRequest(
+                name = "NodeJS",
+                level = 99
+            )
+            val userRequest = UserRequest(
                 name = "Name",
                 nick = "nick",
                 birthDate = LocalDateTime.of(2024, 1, 17, 1, 1),
-                stack = listOf("NodeJS")
+                stack = setOf(stackRequest)
             )
 
             val userCreated = testRestTemplate.postForObject(baseUrl, userRequest, UserResponse::class.java)
@@ -139,7 +153,7 @@ class UserControllerTest(
                         name = userRequest.name,
                         nick = userRequest.nick,
                         birthDate = userRequest.birthDate,
-                        stack = userRequest.stack,
+                        stack = setOf(StackResponse(stackRequest.name, stackRequest.level))
                     )
                 )
         }
@@ -163,6 +177,27 @@ class UserControllerTest(
             assertThat(usersPageResponse.records).isNotNull().hasSize(10)
         }
 
+        @Test
+        fun `Should list users order by name`() {
+            val amountUsers = 50L
+            populateUsers.createUser(amountUsers)//insere 50 usuários
+
+            val response = testRestTemplate.exchange(
+                RequestEntity.get(URI("$baseUrl?page=1&page_size=10&sort=-name")).build(),
+                object : ParameterizedTypeReference<PageResponse<UserResponse>>() {})
+
+            assertNotNull(response)
+            assertEquals(response.statusCode, HttpStatus.PARTIAL_CONTENT)
+            val usersPageResponse: PageResponse<UserResponse> = response.body!!
+            assertEquals(1, usersPageResponse.page)
+            assertEquals(10, usersPageResponse.pageSize)
+            assertEquals(amountUsers, usersPageResponse.total)
+            assertThat(usersPageResponse.records)
+                .isNotNull()
+                .hasSize(10)
+                .isSortedAccordingTo(compareBy(UserResponse::name).reversed())
+        }
+
     }
 
     @Nested
@@ -170,11 +205,15 @@ class UserControllerTest(
 
         @Test
         fun `Create User`() {
-            val userRequest = CreateUserRequest(
+            val stackRequest = StackRequest(
+                name = "NodeJS",
+                level = 100
+            )
+            val userRequest = UserRequest(
                 name = "Name",
                 nick = "nick",
                 birthDate = LocalDateTime.now(),
-                stack = listOf("NodeJS")
+                stack = setOf(stackRequest)
             )
 
             val response =
@@ -186,10 +225,70 @@ class UserControllerTest(
             assertNotNull(user)
             assertNotNull(user.id)
             assertEquals(response.headers.location.toString(), "/users/${user.id}")
-            assertEquals(user.nick, userRequest.nick)
+            assertEquals(userRequest.nick, user.nick)
+            assertEquals(userRequest.name, user.name)
+            assertEquals(userRequest.birthDate, user.birthDate)
+            assertThat(user.stack)
+                .isNotNull()
+                .hasSize(1)
+                .first()
+                .usingDefaultComparator()
+                .isEqualTo(StackResponse(stackRequest.name, stackRequest.level))
+        }
+
+        fun `Not create user when nick is invalid value`() {
+            val userRequest = UserRequest(
+                name = "Name",
+                nick = "nick".repeat(30),
+                birthDate = LocalDateTime.now(),
+                stack = setOf(
+                    StackRequest(
+                        name = "NodeJS",
+                        level = 100
+                    )
+                )
+            )
+
+            val response =
+                testRestTemplate.postForEntity(baseUrl, userRequest, ErrorsResponse::class.java)
+
+            assertNotNull(response)
+            assertEquals(response.statusCode, HttpStatus.BAD_REQUEST)
+            val errors = response.body?.errorMessages
+
+            assertNotNull(errors)
+            assertThat(errors)
+                .isNotNull
+                .hasSizeGreaterThanOrEqualTo(1)
+                .allMatch {
+                    it.code == "size" &&
+                            it.description == "O campo apelido deve possuir no máximo 32 caracteres"
+                }
+        }
+
+        @Test
+        fun `Should create user when not have nick`() {
+            val userRequest = UserRequest(
+                name = "Name",
+                nick = null,
+                birthDate = LocalDateTime.now(),
+            )
+
+            val response =
+                testRestTemplate.postForEntity(baseUrl, userRequest, UserResponse::class.java)
+
+            assertNotNull(response)
+            assertEquals(response.statusCode, HttpStatus.CREATED)
+            val user = response.body as UserResponse
+            assertNotNull(user)
+            assertNotNull(user.id)
+            assertEquals(response.headers.location.toString(), "/users/${user.id}")
+            assertNull(user.nick)
             assertEquals(user.name, userRequest.name)
             assertEquals(user.birthDate, userRequest.birthDate)
-            assertEquals(user.stack, userRequest.stack)
+            assertThat(user.stack)
+                .isNotNull()
+                .isEmpty()
         }
 
         @ParameterizedTest()
@@ -203,11 +302,16 @@ class UserControllerTest(
             ]
         )
         fun `Not create user when name is invalid value`(name: String) {
-            val userRequest = CreateUserRequest(
+            val userRequest = UserRequest(
                 name = name,
                 nick = "nick",
                 birthDate = LocalDateTime.now(),
-                stack = listOf("NodeJS")
+                stack = setOf(
+                    StackRequest(
+                        name = "NodeJS",
+                        level = 100
+                    )
+                )
             )
 
             val response =
@@ -219,20 +323,24 @@ class UserControllerTest(
 
             assertNotNull(errors)
             assertThat(errors)
-                .allMatch { it.description == "O campo nome é obrigatório e deve estar entre 1 e 255" }
+                .isNotNull
+                .hasSizeGreaterThanOrEqualTo(1)
+                .allMatch {
+                    it.code == "size" &&
+                    it.description == "O campo nome é obrigatório e deve estar entre 1 e 255"
+                }
         }
 
         @Test
         fun `Not create user when have empty value on stack`() {
-            val userRequest = CreateUserRequest(
-                name = "Name",
-                nick = "nick",
-                birthDate = LocalDateTime.now(),
-                stack = listOf("", "")
+            val response = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(baseUrl).body(mapOf(
+                    "name" to "Fulano",
+                    "nick" to "Nick",
+                    "birth_date" to "2024-10-01T01:10:01",
+                    "stack" to listOf("", "")
+                ))
             )
-
-            val response =
-                testRestTemplate.postForEntity(baseUrl, userRequest, ErrorsResponse::class.java)
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.BAD_REQUEST)
@@ -240,12 +348,14 @@ class UserControllerTest(
 
             assertNotNull(errors)
             assertThat(errors)
+                .isNotNull
+                .hasSizeGreaterThanOrEqualTo(1)
                 .allMatch { it.description == "Os elementos da lista devem estar entre 1 e 32" }
         }
 
         @Test
         fun `Should create user when not have stack`() {
-            val userRequest = CreateUserRequest(
+            val userRequest = UserRequest(
                 name = "Name",
                 nick = "nick",
                 birthDate = LocalDateTime.now(),
@@ -263,20 +373,18 @@ class UserControllerTest(
             assertEquals(user.nick, userRequest.nick)
             assertEquals(user.name, userRequest.name)
             assertEquals(user.birthDate, userRequest.birthDate)
-            assertNull(user.stack)
+            assertThat(user.stack)
+                .isNotNull()
+                .isEmpty()
         }
 
         @Test
         fun `Not create user when date is invalid`() {
-            val response = testRestTemplate.postForEntity(
-                baseUrl,
-                """
-                    {
-                        "name": "Fulano",
-                        "birth_date": "2024-10-0101:10"
-                    }
-                """,
-                ErrorsResponse::class.java
+            val response = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(baseUrl).body(mapOf(
+                    "name" to "Fulano",
+                    "birth_date" to "2024-10-0101:10:01",
+                ))
             )
 
             assertNotNull(response)
@@ -285,21 +393,28 @@ class UserControllerTest(
 
             assertNotNull(errors)
             assertThat(errors)
-                .allMatch { it.description == "Os elementos da lista devem estar entre 1 e 32" }
+                .isNotNull
+                .hasSizeGreaterThanOrEqualTo(1)
+                .allMatch { it.code == DATE_TIME_INVALID_FORMAT.code && it.description == DATE_TIME_INVALID_FORMAT.description }
         }
 
     }
 
-    @Nested
+    @Nested//
     inner class DeleteUser {
 
         @Test
         fun `Delete user by id`() {
-            val userRequest = CreateUserRequest(
+            val userRequest = UserRequest(
                 name = "Name",
                 nick = "nick",
                 birthDate = LocalDateTime.now(),
-                stack = listOf("NodeJS")
+                stack = setOf(
+                    StackRequest(
+                        name = "NodeJS",
+                        level = 100
+                    )
+                )
             )
 
             val userCreatedResponse = testRestTemplate.postForObject<UserResponse>(baseUrl, userRequest)
@@ -326,23 +441,28 @@ class UserControllerTest(
 
     }
 
-    @Nested
+    @Nested//
     inner class UpdateUser {
 
         @Test
-        fun `Update User`() {
-            val createUserRequest = CreateUserRequest(
+        fun `Should change name, nick and clear stack on update user`() {
+            val userRequest = UserRequest(
                 name = "Name",
                 nick = "nick",
                 birthDate = LocalDateTime.now(),
-                stack = listOf("NodeJS")
+                stack = setOf(
+                    StackRequest(
+                        name = "NodeJS",
+                        level = 100
+                    )
+                )
             )
 
             val createUserResponse =
-                testRestTemplate.postForEntity(baseUrl, createUserRequest, UserResponse::class.java)
+                testRestTemplate.postForEntity(baseUrl, userRequest, UserResponse::class.java)
 
             val userCreated = createUserResponse.body as UserResponse
-            val updateUserRequest = UpdateUserRequest(
+            val updateUserRequest = UserRequest(
                 name = "Name 2",
                 nick = "nick 2",
                 birthDate = LocalDateTime.of(2023, 12, 1, 1, 1),
@@ -350,23 +470,25 @@ class UserControllerTest(
             )
 
             val userId = userCreated.id
-            val updateUserResponse = testRestTemplate.exchange(
-                RequestEntity<UpdateUserRequest>(
+            val userUpdatedResponse = testRestTemplate.exchange(
+                RequestEntity<UserRequest>(
                     updateUserRequest,
                     HttpMethod.PUT,
                     URI("$baseUrl/$userId")
                 ), UserResponse::class.java
             )
 
-            assertNotNull(updateUserResponse)
-            assertEquals(updateUserResponse.statusCode, HttpStatus.OK)
-            val user = updateUserResponse.body as UserResponse
-            assertNotNull(user)
-            assertEquals(user.id, userId)
-            assertEquals(user.nick, updateUserRequest.nick)
-            assertEquals(user.name, updateUserRequest.name)
-            assertEquals(user.birthDate, updateUserRequest.birthDate)
-            assertEquals(user.stack, updateUserRequest.stack)
+            assertNotNull(userUpdatedResponse)
+            assertEquals(userUpdatedResponse.statusCode, HttpStatus.OK)
+            val userUpdated = userUpdatedResponse.body as UserResponse
+            assertNotNull(userUpdated)
+            assertEquals(userUpdated.id, userId)
+            assertEquals(userUpdated.nick, updateUserRequest.nick)
+            assertEquals(userUpdated.name, updateUserRequest.name)
+            assertEquals(userUpdated.birthDate, updateUserRequest.birthDate)
+            assertThat(userUpdated.stack)
+                .isNotNull()
+                .isEmpty()
         }
 
     }

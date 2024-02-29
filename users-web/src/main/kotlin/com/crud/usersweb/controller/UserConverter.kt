@@ -8,6 +8,6 @@ fun User.toUserResponse(): UserResponse {
         birthDate = birthDate,
         nick = nick,
         name = name,
-        stack = stack
+        stack = stack?.map { StackResponse(it.name, it.level) }?.toSet()
     )
 }

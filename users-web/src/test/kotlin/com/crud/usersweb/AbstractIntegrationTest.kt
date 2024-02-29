@@ -22,6 +22,11 @@ abstract class AbstractIntegrationTest {
                 .asCompatibleSubstituteFor("gvenzl/oracle-xe")
         ).apply {
             withEnv("ORACLE_PWD", "123456")
+            withCreateContainerCmdModifier {
+                it.hostConfig
+                    ?.withMemory(3 * 1024L * 1024L * 1024L)
+                    ?.withMemorySwap(3 * 1024L * 1024L * 1024L)
+            }
         }
     }
 
