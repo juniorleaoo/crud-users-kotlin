@@ -1,6 +1,11 @@
 package com.crud.usersweb.controller
 
 import com.crud.usersweb.AbstractIntegrationTest
+import com.crud.usersweb.controller.request.StackRequest
+import com.crud.usersweb.controller.request.UserRequest
+import com.crud.usersweb.controller.response.PageResponse
+import com.crud.usersweb.controller.response.StackResponse
+import com.crud.usersweb.controller.response.UserResponse
 import com.crud.usersweb.exceptions.APIErrorEnum.DATE_TIME_INVALID_FORMAT
 import com.crud.usersweb.exceptions.APIErrorEnum.NOT_FOUND
 import com.crud.usersweb.exceptions.handlers.ErrorMessage
@@ -9,20 +14,30 @@ import com.crud.usersweb.repository.UserRepository
 import com.crud.usersweb.utils.PopulateUsers
 import com.crud.usersweb.utils.typeOf
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Tag
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.client.*
+import org.springframework.boot.test.web.client.TestRestTemplate
+import org.springframework.boot.test.web.client.exchange
+import org.springframework.boot.test.web.client.getForEntity
+import org.springframework.boot.test.web.client.postForEntity
+import org.springframework.boot.test.web.client.postForObject
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.RequestEntity
 import java.net.URI
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @Tag("integration")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -128,7 +143,8 @@ class UserControllerTest(
 
             val response = testRestTemplate.exchange(
                 RequestEntity.get(URI(baseUrl)).build(),
-                typeOf<PageResponse<UserResponse>>())
+                typeOf<PageResponse<UserResponse>>()
+            )
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.OK)
@@ -161,7 +177,8 @@ class UserControllerTest(
 
             val response = testRestTemplate.exchange(
                 RequestEntity.get(URI("$baseUrl?page=2&page_size=10")).build(),
-                typeOf<PageResponse<UserResponse>>())
+                typeOf<PageResponse<UserResponse>>()
+            )
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.PARTIAL_CONTENT)
@@ -182,7 +199,8 @@ class UserControllerTest(
 
             val response = testRestTemplate.exchange(
                 RequestEntity.get(URI("$baseUrl?page=1&page_size=10&sort=-name")).build(),
-                typeOf<PageResponse<UserResponse>>())
+                typeOf<PageResponse<UserResponse>>()
+            )
 
             assertNotNull(response)
             assertEquals(response.statusCode, HttpStatus.PARTIAL_CONTENT)
@@ -359,19 +377,21 @@ class UserControllerTest(
                 .hasSizeGreaterThanOrEqualTo(1)
                 .allMatch {
                     it.code == "size" &&
-                    it.description == "O campo nome é obrigatório e deve estar entre 1 e 255"
+                            it.description == "O campo nome é obrigatório e deve estar entre 1 e 255"
                 }
         }
 
         @Test
         fun `Should not create user when stack is empty`() {
             val response = testRestTemplate.exchange<ErrorsResponse>(
-                RequestEntity.post(baseUrl).body(mapOf(
-                    "name" to "Fulano",
-                    "nick" to "Nick",
-                    "birth_date" to "2024-10-01T01:10:01",
-                    "stack" to listOf("", "")
-                ))
+                RequestEntity.post(baseUrl).body(
+                    mapOf(
+                        "name" to "Fulano",
+                        "nick" to "Nick",
+                        "birth_date" to "2024-10-01T01:10:01",
+                        "stack" to listOf("", "")
+                    )
+                )
             )
 
             assertNotNull(response)
@@ -413,10 +433,12 @@ class UserControllerTest(
         @Test
         fun `Should not create user when date is invalid`() {
             val response = testRestTemplate.exchange<ErrorsResponse>(
-                RequestEntity.post(baseUrl).body(mapOf(
-                    "name" to "Fulano",
-                    "birth_date" to "2024-10-0101:10:01",
-                ))
+                RequestEntity.post(baseUrl).body(
+                    mapOf(
+                        "name" to "Fulano",
+                        "birth_date" to "2024-10-0101:10:01",
+                    )
+                )
             )
 
             assertNotNull(response)
@@ -541,7 +563,8 @@ class UserControllerTest(
             val createUserResponse = testRestTemplate.postForObject<UserResponse>(baseUrl, userRequest)
             val stacksResponse = testRestTemplate.exchange(
                 RequestEntity.get(URI("$baseUrl/${createUserResponse?.id}/stacks")).build(),
-                typeOf<List<StackResponse>>())
+                typeOf<List<StackResponse>>()
+            )
 
             assertNotNull(stacksResponse)
             assertEquals(HttpStatus.OK, stacksResponse.statusCode)
@@ -562,7 +585,8 @@ class UserControllerTest(
             val createUserResponse = testRestTemplate.postForObject<UserResponse>(baseUrl, userRequest)
             val stacksResponse = testRestTemplate.exchange(
                 RequestEntity.get(URI("$baseUrl/${createUserResponse?.id}/stacks")).build(),
-                typeOf<List<StackResponse>>())
+                typeOf<List<StackResponse>>()
+            )
 
             assertNotNull(stacksResponse)
             assertEquals(HttpStatus.OK, stacksResponse.statusCode)
@@ -612,7 +636,8 @@ class UserControllerTest(
 
             val stacksResponseAfterUpdate = testRestTemplate.exchange(
                 RequestEntity.get(URI("$baseUrl/${userCreated.id}/stacks")).build(),
-                typeOf<List<StackResponse>>())
+                typeOf<List<StackResponse>>()
+            )
             assertNotNull(stacksResponseAfterUpdate)
             assertEquals(HttpStatus.OK, stacksResponseAfterUpdate.statusCode)
             assertThat(stacksResponseAfterUpdate.body)

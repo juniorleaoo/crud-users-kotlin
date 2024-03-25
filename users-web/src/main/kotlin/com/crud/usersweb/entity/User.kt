@@ -1,9 +1,15 @@
 package com.crud.usersweb.entity
 
-import jakarta.persistence.*
+import jakarta.persistence.CascadeType
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
+import jakarta.persistence.Id
+import jakarta.persistence.OneToMany
+import jakarta.persistence.Table
 import org.hibernate.annotations.UuidGenerator
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @Entity
 @Table(name = "users")
@@ -24,6 +30,8 @@ data class User(
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
     val stack: MutableSet<Stack>?,
 ) {
+
+    constructor(id: UUID) : this(id, null, "", LocalDateTime.now(), null)
 
     override fun equals(other: Any?): Boolean {
         if (other is User){

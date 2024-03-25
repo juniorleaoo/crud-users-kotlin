@@ -1,4 +1,4 @@
-package com.crud.usersweb.controller
+package com.crud.usersweb.controller.response
 
 import org.springframework.data.domain.Page
 import java.util.function.Function

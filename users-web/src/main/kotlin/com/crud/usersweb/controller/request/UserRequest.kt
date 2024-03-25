@@ -1,4 +1,4 @@
-package com.crud.usersweb.controller
+package com.crud.usersweb.controller.request
 
 import com.crud.usersweb.entity.Stack
 import com.crud.usersweb.entity.User

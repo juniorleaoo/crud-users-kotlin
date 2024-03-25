@@ -1,6 +1,7 @@
-package com.crud.usersweb.controller
+package com.crud.usersweb.controller.response
 
 import com.crud.usersweb.entity.Stack
+import com.crud.usersweb.entity.User
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -18,4 +19,14 @@ data class StackResponse(
     val level: Int
 ) {
     constructor(stack: Stack) : this(stack.name, stack.level)
+}
+
+fun User.toUserResponse(): UserResponse {
+    return UserResponse(
+        id = id,
+        birthDate = birthDate,
+        nick = nick,
+        name = name,
+        stack = stack?.map { StackResponse(it.name, it.level) }?.toSet()
+    )
 }

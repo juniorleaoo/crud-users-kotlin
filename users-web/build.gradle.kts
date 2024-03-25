@@ -38,6 +38,8 @@ dependencies {
 	testImplementation("org.testcontainers:testcontainers:1.19.3")
 	testImplementation("org.testcontainers:postgresql:1.19.3")
 	testImplementation("org.testcontainers:oracle-xe:1.19.3")
+
+	testImplementation("io.kotest:kotest-assertions-core:5.8.1")
 }
 
 tasks.withType<KotlinCompile> {
@@ -45,6 +47,20 @@ tasks.withType<KotlinCompile> {
 		freeCompilerArgs += "-Xjsr305=strict"
 		jvmTarget = "21"
 	}
+}
+
+tasks.register<Test>("integrationTest") {
+	useJUnitPlatform{
+		includeTags("integration")
+	}
+	shouldRunAfter("test")
+}
+
+tasks.register<Test>("unitTest") {
+	useJUnitPlatform{
+		includeTags("unit")
+	}
+	shouldRunAfter("test")
 }
 
 tasks.withType<Test> {
