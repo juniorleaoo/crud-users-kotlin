@@ -9,7 +9,6 @@ import jakarta.persistence.Lob
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import org.hibernate.annotations.UuidGenerator
-import java.math.BigDecimal
 import java.util.UUID
 
 @Entity
@@ -27,15 +26,15 @@ data class Job(
     val description: String,
 
     @Column(name = "salary", nullable = false)
-    val salary: BigDecimal,
+    val salary: Int,
 
     @OneToMany(mappedBy = "job", fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
     val requirements: MutableSet<Requirement>,
 ) {
 
-    constructor(id: UUID) : this(id, "", "", BigDecimal.ZERO, mutableSetOf())
+    constructor(id: UUID) : this(id, "", "", 0, mutableSetOf())
 
-    constructor(name: String, description: String, salary: BigDecimal) : this(
+    constructor(name: String, description: String, salary: Int) : this(
         null,
         name,
         description,

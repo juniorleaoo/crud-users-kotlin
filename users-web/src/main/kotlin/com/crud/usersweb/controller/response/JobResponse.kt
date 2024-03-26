@@ -1,25 +1,24 @@
 package com.crud.usersweb.controller.response
 
 import com.crud.usersweb.entity.Job
-import java.math.BigDecimal
 import java.util.UUID
 
 data class JobResponse(
     val id: UUID?,
     val name: String,
     val description: String,
-    val salary: BigDecimal,
+    val salary: Int,
     val requirements: Set<RequirementResponse>
 )
 
 data class RequirementResponse(
     val stack: String,
-    val level: LevelResponse
+    val level: LevelResponse? = null
 )
 
 data class LevelResponse(
-    val min: Int,
-    val max: Int
+    val min: Int?,
+    val max: Int?
 )
 
 fun Job.toJobResponse(): JobResponse {
@@ -31,7 +30,7 @@ fun Job.toJobResponse(): JobResponse {
         requirements = requirements.map {
             RequirementResponse(
                 stack = it.stack,
-                level = LevelResponse(it.min, it.max)
+                level = if (it.min == null && it.max == null) null else LevelResponse(it.min, it.max)
             )
         }.toSet()
     )

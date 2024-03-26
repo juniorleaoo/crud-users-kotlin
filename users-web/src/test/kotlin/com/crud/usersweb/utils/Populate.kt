@@ -4,7 +4,6 @@ import com.crud.usersweb.entity.Job
 import com.crud.usersweb.entity.User
 import com.crud.usersweb.repository.JobRepository
 import com.crud.usersweb.repository.UserRepository
-import java.math.BigDecimal
 import java.time.LocalDateTime
 
 class PopulateUsers(
@@ -38,7 +37,7 @@ class PopulateJobs(
                     id = null,
                     name = "Job $i",
                     description = "Description $i",
-                    salary = BigDecimal.valueOf(i),
+                    salary = i.toInt(),
                     requirements = mutableSetOf()
                 )
             )

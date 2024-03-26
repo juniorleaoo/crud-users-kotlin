@@ -21,10 +21,10 @@ data class Requirement(
     val stack: String,
 
     @Column(name = "min")
-    val min: Int,
+    val min: Int?,
 
     @Column(name = "max")
-    val max: Int,
+    val max: Int?,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_id", nullable = false)

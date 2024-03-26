@@ -27,12 +27,12 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.client.TestRestTemplate
+import org.springframework.boot.test.web.client.exchange
 import org.springframework.boot.test.web.client.getForEntity
 import org.springframework.boot.test.web.client.postForEntity
 import org.springframework.boot.test.web.client.postForObject
 import org.springframework.http.HttpStatus
 import org.springframework.http.RequestEntity
-import java.math.BigDecimal
 import java.net.URI
 import java.util.UUID
 
@@ -62,7 +62,7 @@ class JobControllerTest(
             val jobRequest = JobRequest(
                 name = "Software Engineer",
                 description = "Develop software",
-                salary = BigDecimal.ONE,
+                salary = 1,
                 requirements = setOf(requirementRequest)
             )
             val createJobResponse = testRestTemplate.postForObject<JobResponse>("/jobs", jobRequest)
@@ -80,8 +80,8 @@ class JobControllerTest(
                             RequirementResponse(
                                 stack = requirementRequest.stack,
                                 level = LevelResponse(
-                                    min = requirementRequest.level.min,
-                                    max = requirementRequest.level.max
+                                    min = requirementRequest.level?.min,
+                                    max = requirementRequest.level?.max
                                 )
                             )
                         )
@@ -132,7 +132,7 @@ class JobControllerTest(
             val jobRequest = JobRequest(
                 name = "Software Engineer",
                 description = "Develop software",
-                salary = BigDecimal.ONE,
+                salary = 1,
                 requirements = setOf(requirementRequest)
             )
             val jobCreated = testRestTemplate.postForObject<JobResponse>("/jobs", jobRequest)
@@ -161,8 +161,8 @@ class JobControllerTest(
                             RequirementResponse(
                                 stack = requirementRequest.stack,
                                 level = LevelResponse(
-                                    min = requirementRequest.level.min,
-                                    max = requirementRequest.level.max
+                                    min = requirementRequest.level?.min,
+                                    max = requirementRequest.level?.max
                                 )
                             )
                         )
@@ -226,7 +226,7 @@ class JobControllerTest(
             val jobRequest = JobRequest(
                 name = "Name",
                 description = "description",
-                salary = BigDecimal.ONE,
+                salary = 1,
                 requirements = setOf(requirementRequest)
             )
             val jobResponse = testRestTemplate.postForEntity<JobResponse>("/jobs", jobRequest)
@@ -241,8 +241,8 @@ class JobControllerTest(
                 RequirementResponse(
                     stack = requirementRequest.stack,
                     level = LevelResponse(
-                        min = requirementRequest.level.min,
-                        max = requirementRequest.level.max
+                        min = requirementRequest.level?.min,
+                        max = requirementRequest.level?.max
                     )
                 )
             )
@@ -253,8 +253,13 @@ class JobControllerTest(
             val jobRequest = JobRequest(
                 name = "a".repeat(500),
                 description = "description",
-                salary = BigDecimal.ONE,
-                requirements = setOf()
+                salary = 1,
+                requirements = setOf(
+                    RequirementRequest(
+                    stack = "Kotlin",
+                    level = LevelRequest(min = 1, max = 2)
+                )
+                )
             )
             val jobResponse = testRestTemplate.postForEntity<JobResponse>("/jobs", jobRequest)
 
@@ -264,7 +269,7 @@ class JobControllerTest(
             job.name shouldBe jobRequest.name
             job.description shouldBe jobRequest.description
             job.salary shouldBe jobRequest.salary
-            job.requirements.shouldNotBeNull().shouldHaveSize(0)
+            job.requirements.shouldNotBeNull().shouldHaveSize(1)
         }
 
         @Test
@@ -272,8 +277,13 @@ class JobControllerTest(
             val jobRequest = JobRequest(
                 name = "a".repeat(501),
                 description = "description",
-                salary = BigDecimal.ONE,
-                requirements = setOf()
+                salary = 1,
+                requirements = setOf<RequirementRequest>(
+                    RequirementRequest(
+                        stack = "Kotlin",
+                        level = LevelRequest(min = 1, max = 2)
+                    )
+                )
             )
             val jobResponse = testRestTemplate.postForEntity<ErrorsResponse>("/jobs", jobRequest)
 
@@ -288,17 +298,372 @@ class JobControllerTest(
                 }
         }
 
-        //not have name
-        //not have salary
-        //not have requirements
-        //big description
-        //empty description
-        //requirements not have stack
-        //requirements not have level
-        //requirements level min less than 1
-        //requirements level max greater than 100
-        //requirements level min greater than max
+        @Test
+        fun `Should not create a job when name is empty`() {
+            val jobRequest = JobRequest(
+                name = "",
+                description = "description",
+                salary = 1,
+                requirements = setOf(RequirementRequest(
+                    stack = "Kotlin",
+                    level = LevelRequest(min = 1, max = 2)
+                ))
+            )
+            val jobResponse = testRestTemplate.postForEntity<ErrorsResponse>("/jobs", jobRequest)
 
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.BAD_REQUEST
+            jobResponse.body.shouldNotBeNull()
+                .errorMessages.shouldHaveSize(1)
+                .first()
+                .should {
+                    it.code shouldBe "size"
+                    it.description shouldBe "O campo nome é obrigatório e deve estar entre 1 e 500"
+                }
+        }
+
+        @Test
+        fun `Should not create a job when name is null`() {
+            val jobResponse = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(URI("/jobs")).body(
+                    mapOf(
+                        "name" to null,
+                        "description" to "description",
+                        "salary" to 1,
+                        "requirements" to setOf(RequirementRequest(
+                            stack = "Kotlin",
+                            level = LevelRequest(min = 1, max = 2)
+                        ))
+                    )
+                )
+            )
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.BAD_REQUEST
+            jobResponse.body.shouldNotBeNull()
+                .errorMessages.shouldHaveSize(1)
+                .first()
+                .should {
+                    it.code shouldBe "size"
+                    it.description shouldBe "O campo name é obrigatório"
+                }
+        }
+
+        @Test
+        fun `Should not create a job when salary is null`() {
+            val jobResponse = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(URI("/jobs")).body(
+                    mapOf(
+                        "name" to "name",
+                        "description" to "description",
+                        "salary" to null,
+                        "requirements" to setOf(RequirementRequest(
+                            stack = "Kotlin",
+                            level = LevelRequest(min = 1, max = 2))
+                        )
+                    )
+                )
+            )
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.BAD_REQUEST
+            jobResponse.body.shouldNotBeNull()
+                .errorMessages.shouldHaveSize(1)
+                .first()
+                .should {
+                    it.code shouldBe "digits"
+                    it.description shouldBe "O campo salário é obrigatório"
+                }
+        }
+
+        @Test
+        fun `Should not create a job when requirements is empty`() {
+            val jobResponse = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(URI("/jobs")).body(
+                    mapOf(
+                        "name" to "name",
+                        "description" to "description",
+                        "salary" to 1,
+                        "requirements" to setOf<RequirementRequest>()
+                    )
+                )
+            )
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.BAD_REQUEST
+            jobResponse.body.shouldNotBeNull()
+                .errorMessages.shouldHaveSize(1)
+                .first()
+                .should {
+                    it.code shouldBe "size"
+                    it.description shouldBe "O campo requirements é obrigatório"
+                }
+        }
+
+        @Test
+        fun `Should not create a job when requirements has empty values`() {
+            val jobResponse = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(URI("/jobs")).body(
+                    mapOf(
+                        "name" to "name",
+                        "description" to "description",
+                        "salary" to 1,
+                        "requirements" to setOf("", "")
+                    )
+                )
+            )
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.BAD_REQUEST
+            jobResponse.body.shouldNotBeNull()
+                .errorMessages.shouldHaveSize(1)
+                .first()
+                .should {
+                    it.code shouldBe "invalid_format"
+                    it.description shouldBe "Formato inválido de requirements"
+                }
+        }
+
+        @Test
+        fun `Should not create a job when requirements is null`() {
+            val jobResponse = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(URI("/jobs")).body(
+                    mapOf(
+                        "name" to "name",
+                        "description" to "description",
+                        "salary" to 1,
+                        "requirements" to null
+                    )
+                )
+            )
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.BAD_REQUEST
+            jobResponse.body.shouldNotBeNull()
+                .errorMessages.shouldHaveSize(1)
+                .first()
+                .should {
+                    it.code shouldBe "size"
+                    it.description shouldBe "O campo requirements é obrigatório"
+                }
+        }
+
+        @Test
+        fun `Should create a job when description is empty`() {
+            val requirementRequest = RequirementRequest(
+                stack = "Kotlin",
+                level = LevelRequest(min = 1, max = 2)
+            )
+            val jobRequest = JobRequest(
+                name = "Name",
+                description = "",
+                salary = 1,
+                requirements = setOf(requirementRequest)
+            )
+            val jobResponse = testRestTemplate.postForEntity<JobResponse>("/jobs", jobRequest)
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.CREATED
+            val job = jobResponse.body.shouldNotBeNull()
+            job.name shouldBe jobRequest.name
+            job.description shouldBe jobRequest.description
+            job.salary shouldBe jobRequest.salary
+            job.requirements.shouldHaveSize(1).shouldHaveSingleElement(
+                RequirementResponse(
+                    stack = requirementRequest.stack,
+                    level = LevelResponse(
+                        min = requirementRequest.level?.min,
+                        max = requirementRequest.level?.max
+                    )
+                )
+            )
+        }
+
+        @Test
+        fun `Should not create a job when requirements not have stack`() {
+            val jobResponse = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(URI("/jobs")).body(
+                    mapOf(
+                        "name" to "name",
+                        "description" to "description",
+                        "salary" to 1,
+                        "requirements" to setOf(
+                            mapOf(
+                                "stack" to "",
+                                "level" to mapOf(
+                                    "min" to 1,
+                                    "max" to 2
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.BAD_REQUEST
+            jobResponse.body.shouldNotBeNull()
+                .errorMessages.shouldHaveSize(1)
+                .first()
+                .should {
+                    it.code shouldBe "size"
+                    it.description shouldBe "O campo stack é obrigatório e deve possuir pelo menos 32 caracteres"
+                }
+        }
+
+        @Test
+        fun `Should not create a job when requirements stacks is null`() {
+            val jobResponse = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(URI("/jobs")).body(
+                    mapOf(
+                        "name" to "name",
+                        "description" to "description",
+                        "salary" to 1,
+                        "requirements" to setOf(
+                            mapOf(
+                                "stack" to null,
+                                "level" to mapOf(
+                                    "min" to 1,
+                                    "max" to 2
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.BAD_REQUEST
+            jobResponse.body.shouldNotBeNull()
+                .errorMessages.shouldHaveSize(1)
+                .first()
+                .should {
+                    it.code shouldBe "size"
+                    it.description shouldBe "O campo stack é obrigatório e deve possuir pelo menos 32 caracteres"
+                }
+        }
+
+        @Test
+        fun `Should not create a job when requirements stack has more than 32`() {
+            val jobResponse = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(URI("/jobs")).body(
+                    mapOf(
+                        "name" to "name",
+                        "description" to "description",
+                        "salary" to 1,
+                        "requirements" to setOf(
+                            mapOf(
+                                "stack" to "a".repeat(33),
+                                "level" to mapOf(
+                                    "min" to 1,
+                                    "max" to 2
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.BAD_REQUEST
+            jobResponse.body.shouldNotBeNull()
+                .errorMessages.shouldHaveSize(1)
+                .first()
+                .should {
+                    it.code shouldBe "size"
+                    it.description shouldBe "O campo stack é obrigatório e deve possuir pelo menos 32 caracteres"
+                }
+        }
+
+        @Test
+        fun `Should create a job when requirements not have level`() {
+            val requirementRequest = RequirementRequest(
+                stack = "Kotlin"
+            )
+            val jobRequest = JobRequest(
+                name = "Name",
+                description = "description",
+                salary = 1,
+                requirements = setOf(requirementRequest)
+            )
+            val jobResponse = testRestTemplate.postForEntity<JobResponse>("/jobs", jobRequest)
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.CREATED
+            val job = jobResponse.body.shouldNotBeNull()
+            job.name shouldBe jobRequest.name
+            job.description shouldBe jobRequest.description
+            job.salary shouldBe jobRequest.salary
+            job.requirements.shouldHaveSize(1).shouldHaveSingleElement(
+                RequirementResponse(stack = requirementRequest.stack)
+            )
+        }
+
+        @Test
+        fun `Should not create a job when requirements level min less than 1`() {
+            val jobResponse = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(URI("/jobs")).body(
+                    mapOf(
+                        "name" to "name",
+                        "description" to "description",
+                        "salary" to 1,
+                        "requirements" to setOf(
+                            mapOf(
+                                "stack" to "Kotlin",
+                                "level" to mapOf(
+                                    "min" to 0,
+                                    "max" to 2
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.BAD_REQUEST
+            jobResponse.body.shouldNotBeNull()
+                .errorMessages.shouldHaveSize(1)
+                .first()
+                .should {
+                    it.code shouldBe "min"
+                    it.description shouldBe "O tamanho minimo para o campo min é 1"
+                }
+
+        }
+
+        @Test
+        fun `Should not create a job when requirements level max greater than 100`() {
+            val jobResponse = testRestTemplate.exchange<ErrorsResponse>(
+                RequestEntity.post(URI("/jobs")).body(
+                    mapOf(
+                        "name" to "name",
+                        "description" to "description",
+                        "salary" to 1,
+                        "requirements" to setOf(
+                            mapOf(
+                                "stack" to "Kotlin",
+                                "level" to mapOf(
+                                    "min" to 1,
+                                    "max" to 101
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+
+            jobResponse.shouldNotBeNull()
+            jobResponse.statusCode shouldBe HttpStatus.BAD_REQUEST
+            jobResponse.body.shouldNotBeNull()
+                .errorMessages.shouldHaveSize(1)
+                .first()
+                .should {
+                    it.code shouldBe "max"
+                    it.description shouldBe "O tamanho máximo para o campo max é 100"
+                }
+
+        }
 
     }
 
@@ -310,7 +675,7 @@ class JobControllerTest(
             val jobRequest = JobRequest(
                 name = "name",
                 description = "description",
-                salary = BigDecimal.ONE,
+                salary = 1,
                 requirements = setOf(
                     RequirementRequest(
                         stack = "Kotlin",

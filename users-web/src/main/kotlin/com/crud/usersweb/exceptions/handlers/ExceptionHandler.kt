@@ -67,6 +67,14 @@ class ExceptionHandler {
         return ResponseEntity.badRequest().body(ErrorsResponse(DATE_TIME_INVALID_FORMAT))
     }
 
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun illegalArgumentException(
+        req: HttpServletRequest,
+        exception: IllegalArgumentException
+    ): ResponseEntity<ErrorsResponse> {
+        return ResponseEntity.badRequest().body(ErrorsResponse(INVALID_FORMAT))
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException::class)
     fun httpMessageNotReadableException(
         req: HttpServletRequest,
@@ -88,6 +96,8 @@ class ExceptionHandler {
                 }
 
             return ResponseEntity.badRequest().body(ErrorsResponse(body))
+        } else if(cause is IllegalArgumentException) {
+            return ResponseEntity.badRequest().body(ErrorsResponse(INVALID_FORMAT))
         }
 
         return ResponseEntity.badRequest().build()

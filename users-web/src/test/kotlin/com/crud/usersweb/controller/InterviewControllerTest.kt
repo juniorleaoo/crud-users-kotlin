@@ -18,7 +18,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate
 import org.springframework.boot.test.web.client.postForEntity
 import org.springframework.boot.test.web.client.postForObject
 import org.springframework.http.HttpStatus
-import java.math.BigDecimal
 import java.time.LocalDateTime
 
 @Tag("integration")
@@ -50,7 +49,7 @@ class InterviewControllerTest(
             "/jobs", JobRequest(
                 name = "Job 1",
                 description = "Description 1",
-                salary = BigDecimal.ONE,
+                salary = 1,
                 requirements = setOf()
             )
         )
